@@ -2,22 +2,21 @@ pub fn add(left: usize, right: usize) -> usize {
     left + right
 }
 
-mod token;
 mod literals;
+mod token;
 
 #[cfg(test)]
 mod tests {
     use crate::token::tokenize;
     use std::fs;
+    use std::env;
+
     #[test]
     fn lexer() {
-        let content = fs::read_to_string("./test.py").unwrap();
-        let tokens = tokenize(&content);
-        
-        println!("Tokens: ");
-        for token in tokens {
-            println!("{:?}", token);
-        }
+        println!("{}", env::var("FILE_TO_PARSE").unwrap());
+        let content = fs::read_to_string(env::var("FILE_TO_PARSE").unwrap()).unwrap();
+        let _tokens = tokenize(&content);
+
     }
 
     mod regex_tests {
@@ -47,11 +46,11 @@ mod tests {
                     Some(mat) => {
                         println!("{:?}", mat);
                     }
-                    None => println!("Didn't find token {} in pattern {}", test, pat.as_str())
+                    None => println!("Didn't find token {} in pattern {}", test, pat.as_str()),
                 }
             }
         }
-    
+
         #[test]
         fn string_regex() {
             let pat = Regex::new(r#"^"([^"\\]|\\.)*"$"#).unwrap();
@@ -65,9 +64,11 @@ mod tests {
                 r#""This string contains a form feed \f character""#,
                 r#""This string contains a vertical tab \v character""#,
                 r#""This string contains a null terminator \0 at the end""#,
+                r#####""####""#####,
             ];
-            
+
             for test in tests {
+                println!("{}", test);
                 assert!(pat.is_match(test));
             }
         }
@@ -75,7 +76,7 @@ mod tests {
         #[test]
         fn literal_regex() {
             let pat = Regex::new("^(True|False|None)$").unwrap();
-            
+
             assert!(pat.is_match("True"));
             assert!(pat.is_match("False"));
             assert!(pat.is_match("None"));

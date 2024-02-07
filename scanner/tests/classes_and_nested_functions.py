@@ -30,3 +30,7 @@ class Server:
         request = self._extract_request(client)
         endpoint = request.split()[1]
         self._endpoints[endpoint](request)
+
+    @endpoint('/')
+    def _root(self, req):
+        return "Hello, World!"
