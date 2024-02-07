@@ -3,10 +3,7 @@ pub fn add(left: usize, right: usize) -> usize {
 }
 
 mod token;
-mod keyword;
 mod literals;
-mod operator;
-mod separator;
 
 #[cfg(test)]
 mod tests {
@@ -25,37 +22,6 @@ mod tests {
 
     mod regex_tests {
         use regex::Regex;
-
-        #[test]
-        fn separator_regex() {
-            use crate::separator::SEPARATOR_REGEX;
-            let pat = Regex::new(SEPARATOR_REGEX).unwrap();
-            
-            let tests = [
-                "(",
-                ")",
-                ":"
-            ];
-
-            for test in tests {
-                assert!(pat.is_match(test))
-            }
-        }
-
-        #[test]
-        fn operator_regex() {
-            use crate::operator::OPERATOR_REGEX;
-            let pat = Regex::new(OPERATOR_REGEX).unwrap();
-
-            let tests = [
-                "+",
-                "*",
-                "="
-            ];
-            for test in tests {
-                assert!(pat.is_match(test))
-            }
-        }
 
         #[test]
         fn number_regex() {

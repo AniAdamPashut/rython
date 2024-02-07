@@ -1,9 +1,6 @@
 use regex::Regex;
 
-use crate::keyword::*;
 use crate::literals::*;
-use crate::operator::*;
-use crate::separator::*;
 
 #[derive(Debug)]
 pub struct Token {
@@ -46,6 +43,11 @@ pub enum TokenType {
     Literal(Literal)
 }
 
+const OPERATOR_REGEX: &str = r"\*|\+|-|=|/";
+const SEPARATOR_REGEX: &str = r"\(|\)|\{|\}|\[|\]|,|\.|:";
+const BLOCK_KEYWORD_REGEX: &str = r"class|with|try|finally|if|else|elif|while|for|except|def";
+const KEYWORD_OPERATOR_REGEX: &str = r"global|not|del|or|and|yield|as|async|assert|await|import|in|is|raise|return";
+const STANDALONE_KEYWORD_REGEX: &str = r"pass|break|continue|lambda|nonlocal";
 const NAME_REGEX: &str = r"[A-Za-z_][A-Za-z0-9_]*";
 
 const PATTERN_SET: [&str; 9] = [
