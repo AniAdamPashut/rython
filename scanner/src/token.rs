@@ -2,14 +2,14 @@ use regex::Regex;
 
 use crate::literals::*;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Token {
-    val: String,
-    lineno: usize,
-    start: usize,
-    end: usize,
-    indent: usize,
-    kind: TokenType
+    pub val: String,
+    pub lineno: usize,
+    pub start: usize,
+    pub end: usize,
+    pub indent: usize,
+    pub kind: TokenType
 }
 
 impl Token {
@@ -32,7 +32,7 @@ impl Token {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum TokenType {
     Name,
     Keyword,
@@ -43,114 +43,62 @@ pub enum TokenType {
     Literal(Literal)
 }
 
-const OPERATOR_REGEX: &str = r"\*|\+|-|=|/";
-const SEPARATOR_REGEX: &str = r"\(|\)|\{|\}|\[|\]|,|\.|:";
-const BLOCK_KEYWORD_REGEX: &str = r"class|with|try|finally|if|else|elif|while|for|except|def";
-const KEYWORD_OPERATOR_REGEX: &str = r"global|not|del|or|and|yield|as|async|assert|await|import|in|is|raise|return";
-const STANDALONE_KEYWORD_REGEX: &str = r"pass|break|continue|lambda|nonlocal";
+
+/*
+The long list of operators
++       -       *       **      /       //      %      @
+<<      >>      &       |       ^       ~       :=
+<       >       <=      >=      ==      !=
+*/
+const OPERATOR_REGEX: &str = r"\*|\*\*|\+|-|=|\/|\/\/|%|@|<<|>>|&|\||\^|~|:=|<|>|<=|>=|==|!=";
+/*
+The ultimate list of delimiters
+(       )       [       ]       {       }
+,       :       .       ;       @       =       ->
++=      -=      *=      /=      //=     %=      @=
+&=      |=      ^=      >>=     <<=     **=
+*/
+const SEPARATOR_REGEX: &str = r"\(|\)|\{|\}|\[|\]|,|\.|:|;|@|->|\+=|-=|\*=|\/=|\/\/=|%=|@=|&=|\|=|\^=|>>=|<<=|\*\*=";
+/* 
+The insatiable list of keywords 
+await      else       import     pass
+break      except     in         raise
+class      finally    is         return
+and        continue   for        lambda     try
+as         def        from       nonlocal   while
+assert     del        global     not        with
+async      elif       if         or         yield
+*/
+const KEYWORDS: [&str; 32] = [
+    "await", "else", "import", "pass", "try",
+    "break", "except", "in", "raise", "while",
+    "class", "finally", "is", "return", "with",
+    "and", "continue", "for", "lambda", "yield",
+    "as", "def", "from", "nonlocal",
+    "assert", "del", "global", "not",
+    "async", "elif", "if", "or",
+];
+
 const NAME_REGEX: &str = r"[A-Za-z_][A-Za-z0-9_]*";
 
-const PATTERN_SET: [&str; 9] = [
+const PATTERN_SET: [&str; 6] = [
     STRING_REGEX,
     NUMERAL_REGEX,
     BOOLEAN_REGEX,
     NONE_REGEX,
     OPERATOR_REGEX,
     SEPARATOR_REGEX,
-    KEYWORD_OPERATOR_REGEX,
-    BLOCK_KEYWORD_REGEX,
-    STANDALONE_KEYWORD_REGEX,
 ];
 
-fn tokenize_line(
-    line: &str, 
-    length: usize, 
+fn get_token_from_match_and_pattern(
+    mat: regex::Match,
+    pat: Vec<(Regex,        regex::Match)>,
     lineno: usize,
-    indent: usize,
-    tokens: &mut Vec<Token>) {
-    // println!("The Line is: {}", line);
-    // println!("Printing tokens:");
-    // for token in &mut *tokens {
-        // println!("{:?}", token);
-    // }
-
-    match line.chars().nth(0) {
-        Some(c) => {
-            if c.is_whitespace() {
-                return tokenize_line(&line[1..], length, lineno, indent, tokens);
-            }
-        }
-        None => {
-            return;
-        }
-    }
-
-    let matches: Vec<_> = PATTERN_SET
-        .map(|pat| Regex::new(pat).unwrap())
-        .iter()
-        .filter_map(move |pat| pat.find(line))
-        .filter(|mat| mat.start() == 0)
-        .collect();
-
-    if matches.len() == 0 {
-        println!("No matches");
-        match Regex::new(NAME_REGEX).unwrap().find(line) {
-            Some(mat) => {
-                println!("The match found: {}", mat.as_str()); 
-                println!("The orginial length is: {}, the curr line length is: {}", length, line.len());
-                println!("{}", mat.start() as i32 + length as i32 - line.len() as i32);
-                // prin0tln!("Token start at {}, length of original line is: {}, curr line length: {}", mat.start(), length, line.len());
-                tokens.push(Token::new(
-                    mat.as_str().to_owned(),
-                    lineno,
-                    mat.start() + length - line.len(),
-                    mat.end(),
-                    indent,
-                    TokenType::Name
-                ));
-                let new_start = mat.end();
-                // println!("The new Start is: {}, length of line is: {}", new_start, line.len());
-                if new_start >= line.len() {
-                    return;
-                }
-                println!("calling tokenize_line with new start: {}\n the line is:'{}'", new_start, &line[mat.end()..]);
-                return tokenize_line(&line[mat.end()..], length, lineno, indent, tokens)
-            }
-
-            None => {
-                println!("Gonna panic\n\n Line: '{}', start - end: {} - {}", line, length, line.len());
-                panic!("Idk what's going on as this matches nothing");
-            }
-        }
-    }
-    println!("Line: {}", line);
-    println!("{:?}", matches);
-    for mat in &matches {
-        println!("{:?}", mat);
-    }
-    let mat = matches[0];
-    let pat: Vec<_> = PATTERN_SET
-        .iter()
-        .filter_map(|pat| Regex::new(pat).ok())
-        .map(|pat| (pat.clone(), pat.find(mat.as_str())))
-        .filter_map(|(pat, it)| {
-            if it.is_some() {
-                Some((pat, it.unwrap()))
-            } else {
-                None
-            }
-        })
-        .filter(|(_, mat)| mat.start() == 0)
-        .collect();
-
-    if pat.len() != 1 {
-        println!("Matches: {:?}", matches);
-        panic!("Bruh it hit multiple patterns, HoW? {:?}\n\nTHE MATCH: {}", pat, mat.as_str());
-    }
-
-    let new_start = mat.end();
-
-    tokens.push(match pat[0].0.as_str() {
+    length: usize,
+    new_start: usize,
+    indent: usize
+) -> Token {
+    match pat[0].0.as_str() {
         STRING_REGEX => Token::new(
             mat.as_str().to_owned(),
             lineno,
@@ -200,53 +148,106 @@ fn tokenize_line(
             indent,
             TokenType::Separator,
         ),
-        KEYWORD_OPERATOR_REGEX => Token::new(
-            mat.as_str().to_owned(),
-            lineno,
-            length,
-            new_start,
-            indent,
-            TokenType::Keyword,
-        ),
-        BLOCK_KEYWORD_REGEX => Token::new(
-            mat.as_str().to_owned(),
-            lineno,
-            length,
-            new_start,
-            indent,
-            TokenType::Keyword,
-        ),
-        STANDALONE_KEYWORD_REGEX => Token::new(
-            mat.as_str().to_owned(),
-            lineno,
-            length,
-            new_start,
-            indent,
-            TokenType::Keyword,
-        ),
         _ => unreachable!()
-    });
+    }
+}
 
-    tokenize_line(&line[new_start..], length, lineno, indent, tokens)
+fn tokenize_line(
+    line: &str, 
+    length: usize,
+    lineno: usize,
+    indent: usize,
+    tokens: &mut Vec<Token>) {
+
+    match line.chars().nth(0) {
+        Some(c) => {
+            if c.is_whitespace() {
+                return tokenize_line(&line[1..], length, lineno, indent, tokens);
+            }
+        }
+        None => {
+            return;
+        }
+    }
+
+    let matches: Vec<_> = PATTERN_SET
+        .map(|pat| Regex::new(pat).unwrap())
+        .iter()
+        .filter_map(move |pat| pat.find(line))
+        .filter(|mat| mat.start() == 0)
+        .collect();
+
+    if matches.len() == 0 {
+        match Regex::new(NAME_REGEX).unwrap().find(line) {
+            Some(mat) => {
+                let start = mat.start() + length - line.len();
+                let kind = if KEYWORDS.contains(&mat.as_str()) {
+                    TokenType::Keyword
+                } else {
+                    TokenType::Name
+                };
+                tokens.push(Token::new(
+                    mat.as_str().to_owned(),
+                    lineno,
+                    start,
+                    start + mat.end() ,
+                    indent,
+                    kind
+                ));
+                let new_start = mat.end();
+                if new_start >= line.len() {
+                    return;
+                }
+                return tokenize_line(&line[mat.end()..], length, lineno, indent, tokens);
+            }
+
+            None => {
+                println!("Gonna panic\n\n Line: '{}', start - end: {} - {}", line, length, line.len());
+                panic!("Idk what's going on as this matches nothing");
+            }
+        }
+    }
+    let mat = matches[0];
+    let pat: Vec<_> = PATTERN_SET
+        .iter()
+        .filter_map(|pat| Regex::new(pat).ok())
+        .map(|pat| (pat.clone(), pat.find(mat.as_str())))
+        .filter_map(|(pat, it)| {
+            if it.is_some() {
+                Some((pat, it.unwrap()))
+            } else {
+                None
+            }
+        })
+        .filter(|(_, mat)| mat.start() == 0)
+        .collect();
+
+    if pat.len() != 1 {
+        println!("Matches: {:?}", matches);
+        panic!("Bruh it hit multiple patterns, HoW? {:?}\n\nTHE MATCH: {}", pat, mat.as_str());
+    }
+
+    let new_start = mat.end() + length - line.len();
+
+    tokens.push(get_token_from_match_and_pattern(mat, pat, lineno, length - line.len(), new_start, indent));
+
+    tokenize_line(&line[mat.end()..], length, lineno, indent, tokens)
     
 }
 
 
 pub fn tokenize(input: &str) -> Vec<Token> { 
-    let lines: Vec<&str> = input.split("\n").collect();
+    let lines = input.split("\n");
 
     let mut tokens:  Vec<Token> = Vec::new();
     
-    for (index, line) in lines.iter().enumerate() {
-        println!("{}", line);
+    for (index, line) in lines.enumerate() {
         match line.find(|c: char| !c.is_whitespace()) {
             Some(start) => {
-                println!("Calling tokenize_Line with line: {}\n The length of the line is: {}\n Starting at: {}", line, line.len(), start);
                 match line.find('#') {
                     Some(end) => tokenize_line(&line[start..end], line.len(), index, start, &mut tokens),
                     None => tokenize_line(&line[start..], line.len(), index, start, &mut tokens)
                 }
-                println!("{:?}", tokens);
             }    
             None => continue
         }

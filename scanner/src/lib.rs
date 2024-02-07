@@ -13,7 +13,7 @@ mod tests {
     fn lexer() {
         let content = fs::read_to_string("./test.py").unwrap();
         let tokens = tokenize(&content);
-
+        
         println!("Tokens: ");
         for token in tokens {
             println!("{:?}", token);
