@@ -2,6 +2,7 @@
 
 Todo
 ---
+- idiomatic code
 - add support for multiline strings
 - implement a symbol table
 - ~~Fix bug that counts *some* keywords as names~~
