@@ -7,3 +7,8 @@ Todo
 - implement a symbol table
 - ~~Fix bug that counts *some* keywords as names~~
 - ~~widen the support for separators and operators (it's limited for now)~~
+
+How to try
+---
+- One way is to use the `run_tests.py` file
+- The other is to `FILE_TO_PARSE={} cargo test lexer` 
