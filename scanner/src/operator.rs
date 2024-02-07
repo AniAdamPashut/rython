@@ -1,0 +1,1 @@
+pub const OPERATOR_REGEX: &str = r"\*|\+|-|=|/";
