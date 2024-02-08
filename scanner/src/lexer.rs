@@ -1,5 +1,3 @@
-use std::sync::OnceLock;
-
 use regex::Regex;
 use find_all::FindAll;
 use tailcall::tailcall;
@@ -8,12 +6,12 @@ use crate::literals::*;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Token {
-    pub val: String,
-    pub lineno: usize,
-    pub start: usize,
-    pub end: usize,
-    pub indent: usize,
-    pub kind: TokenType
+    val: String,
+    lineno: usize,
+    start: usize,
+    end: usize,
+    indent: usize,
+    kind: TokenType
 }
 
 impl Token {
@@ -99,13 +97,6 @@ const PATTERN_SET: [(&'static str, TokenType); 13] = [
     (SEPARATOR_REGEX, TokenType::Separator),
 ];
 
-fn compile_patterns() -> Vec<(Regex, TokenType)> {
-    static COMPILED: OnceLock<Vec<(Regex, TokenType)>> = OnceLock::new();
-    PATTERN_SET
-        .iter()
-        .map(|(pat, kind)|(Regex::new(pat).unwrap(), kind.clone()))
-        .collect()
-}
 
 #[tailcall]
 fn tokenize_rec(
@@ -219,7 +210,10 @@ fn tokenize_rec(
 pub fn tokenize(input: &str) -> Vec<Token> {
     let mut tokens: Vec<Token> = Vec::new();
 
-    let patterns = compile_patterns();
+    let patterns: Vec<(Regex, TokenType)> = PATTERN_SET
+        .iter()
+        .map(|(pat, kind)| (Regex::new(pat).unwrap(), kind.clone()))
+        .collect();
 
     tokenize_rec(input, input.len(), 1, 0, &mut tokens, &patterns);
     tokens
