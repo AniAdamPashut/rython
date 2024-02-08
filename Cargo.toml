@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
-    "scanner"
+    "scanner",
+    "rython"
 ]
 resolver = "2"

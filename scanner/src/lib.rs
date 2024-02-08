@@ -1,22 +1,38 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
-
 mod literals;
-mod token;
+mod lexer;
+
+pub use lexer::tokenize;
 
 #[cfg(test)]
 mod tests {
-    use crate::token::tokenize;
+    use crate::lexer::tokenize;
     use std::fs;
     use std::env;
+    use std::time::Instant;
+
+    #[test]
+    fn time_to_iterate_over_long_file() {
+        let content = fs::read_to_string("./tests/server.py").unwrap();
+        let start = Instant::now();
+        for cahr in content.chars() {
+            print!("{}", cahr);
+        }
+        let end = Instant::now();
+        println!("Elapsed time: {:?}", end - start);
+    }
 
     #[test]
     fn lexer() {
         println!("{}", env::var("FILE_TO_PARSE").unwrap());
         let content = fs::read_to_string(env::var("FILE_TO_PARSE").unwrap()).unwrap();
-        let _tokens = tokenize(&content);
+        let start = Instant::now();
+        let tokens = tokenize(&content);
+        let end = Instant::now();
+        println!("Elapsed time (rust): {:?}", end - start);
 
+        for token in tokens {
+            println!("{:?}", token);
+        }
     }
 
     mod regex_tests {
