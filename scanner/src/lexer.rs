@@ -99,8 +99,13 @@ const PATTERN_SET: [(&'static str, TokenType); 13] = [
     (SEPARATOR_REGEX, TokenType::Separator),
 ];
 
-static mut COMPILED_REGEX: Vec<(Regex, TokenType)> = vec![];
-
+fn compile_patterns() -> Vec<(Regex, TokenType)> {
+    static COMPILED: OnceLock<Vec<(Regex, TokenType)>> = OnceLock::new();
+    PATTERN_SET
+        .iter()
+        .map(|(pat, kind)|(Regex::new(pat).unwrap(), kind.clone()))
+        .collect()
+}
 
 #[tailcall]
 fn tokenize_rec(
@@ -108,7 +113,8 @@ fn tokenize_rec(
     length: usize,
     lineno: usize,
     indent: usize,
-    tokens: &mut Vec<Token>) {
+    tokens: &mut Vec<Token>,
+    patterns: &[(Regex, TokenType)],) {
 
     match line.chars().nth(0) {
         Some(c) => {
@@ -123,20 +129,20 @@ fn tokenize_rec(
                                 (index - vec[vec.len() - 1] - 1, vec.len() + 1)
                             }
                         };
-                        return tokenize_rec(&line[index..], length, lineno + line_skip, offset, tokens);
+                        return tokenize_rec(&line[index..], length, lineno + line_skip, offset, tokens, patterns);
                     }
                     None => return
                 }
             }
 
             else if c.is_whitespace() {
-                return tokenize_rec(&line[1..], length, lineno, indent, tokens);
+                return tokenize_rec(&line[1..], length, lineno, indent, tokens, patterns);
             }
 
             if c == '#' {
                 let next_line = line.find('\n');
                 match next_line {
-                    Some(index) => return tokenize_rec(&line[index..], length, lineno + 1, indent, tokens),
+                    Some(index) => return tokenize_rec(&line[index..], length, lineno + 1, indent, tokens, patterns),
                     None => return
                 }
             }
@@ -146,34 +152,34 @@ fn tokenize_rec(
         }
     }
 
-    unsafe {
-        let pat = COMPILED_REGEX
-        .iter()
-        .map(|(pat, kind)| (kind, pat.find(line)))
-        .filter_map(|(pat, it)| {
-            if it.is_some() {
-                Some((pat, it.unwrap()))
-            } else {
-                None
-            }
-        })
-        .max_by_key(|(_, mat)| mat.end());
-        if pat.is_some() {
-            let pat = pat.unwrap();
-            let new_start = pat.1.end() + length - line.len();
 
-            let token = Token::new(
-                pat.1.as_str().to_owned(),
-                lineno,
-                length - line.len(),
-                new_start,
-                indent,
-                pat.0
-            );
-            tokens.push(token);
-            return tokenize_rec(&line[pat.1.end()..], length, lineno, indent, tokens);       
+    let pat = patterns
+    .iter()
+    .map(|(pat, kind)| (kind, pat.find(line)))
+    .filter_map(|(pat, it)| {
+        if it.is_some() {
+            Some((pat, it.unwrap()))
+        } else {
+            None
         }
+    })
+    .max_by_key(|(_, mat)| mat.end());
+    if pat.is_some() {
+        let pat = pat.unwrap();
+        let new_start = pat.1.end() + length - line.len();
+
+        let token = Token::new(
+            pat.1.as_str().to_owned(),
+            lineno,
+            length - line.len(),
+            new_start,
+            indent,
+            pat.0
+        );
+        tokens.push(token);
+        return tokenize_rec(&line[pat.1.end()..], length, lineno, indent, tokens, patterns);       
     }
+    
 
 
     match Regex::new(NAME_REGEX).unwrap().find(line) {
@@ -197,7 +203,7 @@ fn tokenize_rec(
             if new_start >= line.len() {
                 return;
             }
-            tokenize_rec(&line[mat.end()..], length, lineno, indent, tokens)
+            tokenize_rec(&line[mat.end()..], length, lineno, indent, tokens, patterns)
         }
 
         None => {
@@ -212,12 +218,9 @@ fn tokenize_rec(
 
 pub fn tokenize(input: &str) -> Vec<Token> {
     let mut tokens: Vec<Token> = Vec::new();
-    unsafe {
-        COMPILED_REGEX = PATTERN_SET
-            .iter()
-            .map(|(pat, kind)| (Regex::new(pat).unwrap(), kind.clone()))
-            .collect()
-    }
-    tokenize_rec(input, input.len(), 1, 0, &mut tokens);
+
+    let patterns = compile_patterns();
+
+    tokenize_rec(input, input.len(), 1, 0, &mut tokens, &patterns);
     tokens
 }
