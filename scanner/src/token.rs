@@ -79,9 +79,11 @@ const KEYWORDS: [&str; 32] = [
 
 const NAME_REGEX: &str = r"[A-Za-z_][A-Za-z0-9_]*";
 
-const PATTERN_SET: [&str; 7] = [
+const PATTERN_SET: [&str; 9] = [
     STRING_REGEX,
     BYTE_STRING_REGEX,
+    RAW_STRING_REGEX,
+    FORMAT_STRING_REGEX,
     NUMERAL_REGEX,
     BOOLEAN_REGEX,
     NONE_REGEX,
@@ -102,6 +104,10 @@ fn get_token_from_match_and_pattern(
             TokenType::Literal(Literal::String),
         BYTE_STRING_REGEX => 
             TokenType::Literal(Literal::ByteString),
+        RAW_STRING_REGEX =>
+            TokenType::Literal(Literal::RawString),
+        FORMAT_STRING_REGEX =>
+            TokenType::Literal(Literal::FormatString),
         NUMERAL_REGEX => 
             TokenType::Literal(Literal::Number),
         BOOLEAN_REGEX => 
