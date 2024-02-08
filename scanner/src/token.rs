@@ -218,11 +218,12 @@ pub fn tokenize(input: &str) -> Vec<Token> {
                             tokenize_line(&line[start..end], line.len(), index, start, &mut tokens);
                             continue;
                         }
-                        println!("Found hashtag inside a string at {} between {} and {}", end, mat.unwrap().start(), mat.unwrap().end());
                         if end > mat.unwrap().start() && end < mat.unwrap().end() {
+                            println!("Found hashtag inside a string at {} between {} and {}", end, mat.unwrap().start(), mat.unwrap().end());
                             tokenize_line(&line[start..], line.len(), index, start, &mut tokens);
                             continue;
                         }
+                        println!("Found comment at {}", end);
                         tokenize_line(&line[start..end], line.len(), index, start, &mut tokens);
                     }
                     None => tokenize_line(&line[start..], line.len(), index, start, &mut tokens)
