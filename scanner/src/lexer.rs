@@ -104,9 +104,7 @@ const PATTERN_SET: [(&'static str, TokenType); 13] = [
 pub struct Tokens {
     input: String,
     current: usize,
-    /// (length, indent)
     lines: Vec<(usize, usize)>, 
-    tokens: Vec<Token>,
     patterns: Vec<(Regex, TokenType)>,
     name_pattern: Regex
 }
@@ -121,19 +119,39 @@ impl Tokens {
             input: input.to_owned(),
             current: 0,
             lines: Vec::new(),
-            tokens: Vec::new(),
             patterns: patterns.to_owned(),
             name_pattern: name_pattern.to_owned(),
         }
     }
 
 
-    fn _next(&mut self) -> Option<Token> {
+    pub fn lines(&self) -> usize {
+        self.lines.len()
+    }
+
+    fn get_start_from_line(&self) -> usize {
+        self.current - self.lines.last().unwrap_or(&(0,0)).0
+    }
+}
+
+impl Iterator for Tokens {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
         if self.current >= self.input.len() {
             return None;
         }
 
         let c =  self.input.chars().nth(self.current).unwrap();
+
+        if c == '\\' {
+            if self.input.chars().nth(self.current + 1).unwrap_or(' ') != '\n' {
+                panic!("Statements need to be separated by newlines or semicolons  {}:{}", self.lines(), self.get_start_from_line())
+            }
+            self.current += 2;
+            return self.next();
+        }
+
         if c == '\n' {
             let length_until_line: usize = self.current;
             let indentation_level = self.input[self.current+1..].find(|c: char| !c.is_whitespace()).unwrap_or(0);
@@ -153,13 +171,13 @@ impl Tokens {
 
         if c.is_whitespace() {
             self.current += 1;
-            return self._next();
+            return self.next();
         }
 
         if c == '#' {
             if let Some(index) = self.input[self.current..].find('\n') {
                 self.current += index;
-                return self._next();
+                return self.next();
             }
             return None;
         }
@@ -224,22 +242,8 @@ impl Tokens {
         }
 
         // return None;
-        panic!("Didn't match any pattern, this is not python code. \nHere's the patterns found: {:?}", pat);
+        panic!("Didn't match any pattern, problem near line {}:{}", self.lines.len() + 1, self.current - self.lines.last().unwrap_or(&(0, 0)).0);
     }
-}
-
-impl Iterator for Tokens {
-    type Item = Token;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some(token) = self._next() {
-            self.tokens.push(token.to_owned());
-            return Some(token);
-        }
-        None
-    }
-
-    
 }
 
 pub fn tokenize(input: &str) -> Tokens {
