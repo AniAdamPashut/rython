@@ -136,7 +136,7 @@ impl Tokens {
         let c =  self.input.chars().nth(self.current).unwrap();
         if c == '\n' {
             let length_until_line: usize = self.current;
-            let indentation_level = self.input.find(|c: char| !c.is_whitespace()).unwrap_or(0);
+            let indentation_level = self.input[self.current+1..].find(|c: char| !c.is_whitespace()).unwrap_or(0);
             self.lines.push((length_until_line, indentation_level));
             self.current += 1;
             return Some(                
@@ -150,6 +150,7 @@ impl Tokens {
                     &TokenType::LineFeed,
                 ));
         }
+
         if c.is_whitespace() {
             self.current += 1;
             return self._next();
