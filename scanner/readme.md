@@ -3,11 +3,7 @@
 Todo
 ---
 - more idiomatic code
-- differentiate logical lines from physical lines
-- ~~make tokenization in a loop and not tail-recursion~~
-- ~~make this better overall in terms of speed~~
-- ~~remove indentation levels (currently 8 🤢)~~ 
-- ~~implement as iterator~~
+- widen support for literals (numbers and strings)
 
 How to try
 ---
