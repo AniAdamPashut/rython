@@ -8,4 +8,3 @@ edition = "2021"
 [dependencies]
 find_all = "2.0.0"
 regex = "1.10.3"
-tailcall = "1.0.1"

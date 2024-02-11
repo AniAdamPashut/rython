@@ -1,13 +1,13 @@
 use regex::Regex;
 use find_all::FindAll;
-use tailcall::tailcall;
 
 use crate::literals::*;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Token {
     val: String,
     lineno: usize,
+    end_lineno:usize,
     start: usize,
     end: usize,
     indent: usize,
@@ -18,6 +18,7 @@ impl Token {
     pub fn new(
         val: String,
         lineno: usize,
+        end_lineno: usize,
         start: usize,
         end: usize,
         indent: usize,
@@ -26,6 +27,7 @@ impl Token {
         Token {
             val,
             lineno,
+            end_lineno,
             start,
             end,
             indent,
@@ -99,145 +101,152 @@ const PATTERN_SET: [(&'static str, TokenType); 13] = [
     (SEPARATOR_REGEX, TokenType::Separator),
 ];
 
-#[tailcall]
-fn tokenize_rec(
-    line: &str, 
-    length: usize,
-    lineno: usize,
-    indent: usize,
-    tokens: &mut Vec<Token>,
-    patterns: &[(Regex, TokenType)],
-) {
+pub struct Tokens {
+    input: String,
+    current: usize,
+    /// (length, indent)
+    lines: Vec<(usize, usize)>, 
+    tokens: Vec<Token>,
+    patterns: Vec<(Regex, TokenType)>,
+    name_pattern: Regex
+}
 
-    if None == line.chars().nth(0) {
-        return;
-    }
-
-    let c = line.chars().nth(0).unwrap();
-    if c == '\n' {
-        if let Some(index) = line.find(|c: char| !c.is_whitespace()) {
-            let all_newlines_between = line[..index].chars().find_all(|c| *c == '\n');
-            let (offset, line_skip) = match all_newlines_between {
-                None => (index - 1, 1),
-                Some(vec) => {
-                    vec
-                    .iter()
-                    .enumerate()
-                    .for_each(|(i, it) | {
-                        tokens.push(
-                            Token::new(
-                                String::from("\n"),
-                                lineno + i,
-                                length - line.len() + it,
-                                length - line.len() + 1 + it,
-                                0,
-                                &TokenType::LineFeed
-                            )
-                        );
-                    });
-                    (index - vec[vec.len() - 1] - 1, vec.len())
-                }
-            };
-            return tokenize_rec(&line[index..], length, lineno + line_skip, offset, tokens, patterns);
+impl Tokens {
+    pub fn new(
+        input: &str, 
+        patterns: Vec<(Regex, TokenType)>,
+        name_pattern: Regex,
+    ) -> Self {
+        Tokens {
+            input: input.to_owned(),
+            current: 0,
+            lines: Vec::new(),
+            tokens: Vec::new(),
+            patterns: patterns.to_owned(),
+            name_pattern: name_pattern.to_owned(),
         }
-        return;
     }
 
-    if c.is_whitespace() {
-        return tokenize_rec(&line[1..], length, lineno, indent, tokens, patterns);
-    }
 
-    if c == '#' {
-        if let Some(index) = line.find('\n') {
-            return tokenize_rec(&line[index..], length, lineno + 1, indent, tokens, patterns);
+    fn _next(&mut self) -> Option<Token> {
+        if self.current >= self.input.len() {
+            return None;
         }
-        return;
-    }
 
-
-    let pat = patterns
-    .iter()
-    .map(|(pat, kind)| (kind, pat.find(line)))
-    .filter_map(|(kind, it)| {
-        if it.is_some() {
-            Some((kind, it.unwrap()))
-        } else {
-            None
+        let c =  self.input.chars().nth(self.current).unwrap();
+        if c == '\n' {
+            let length_until_line: usize = self.current;
+            let indentation_level = self.input.find(|c: char| !c.is_whitespace()).unwrap_or(0);
+            self.lines.push((length_until_line, indentation_level));
+            self.current += 1;
+            return Some(                
+                Token::new(
+                    String::from("\n"),
+                    self.lines.len() - 1,
+                    self.lines.len(),
+                    0,
+                    1,
+                    0,
+                    &TokenType::LineFeed,
+                ));
         }
-    })
-    .filter(|(_, mat)| mat.start() == 0)
-    .max_by_key(|(_, mat)| mat.end());
+        if c.is_whitespace() {
+            self.current += 1;
+            return self._next();
+        }
 
-    if pat.is_some() {
-        let pat = pat.unwrap();
-        let new_start = pat.1.end() + length - line.len();
-
-        let token = Token::new(
-            pat.1.as_str().to_owned(),
-            lineno,
-            length - line.len(),
-            new_start,
-            indent,
-            pat.0
-        );
-        tokens.push(token);
-
-        let lines_skipped = match pat.0 {
-            TokenType::Literal(Literal::MultilineString(_)) => {
-                match line[..pat.1.end()].chars().find_all(|c| *c == '\n') {
-                    Some(i) => i.len(),
-                    None => 0
-                }
+        if c == '#' {
+            if let Some(index) = self.input[self.current..].find('\n') {
+                self.current += index;
+                return self._next();
             }
-            _ => 0
-        };
-        return tokenize_rec(&line[pat.1.end()..], length, lineno + lines_skipped, indent, tokens, patterns);       
-    }
-    
+            return None;
+        }
 
-
-    match Regex::new(NAME_REGEX).unwrap().find(line) {
-        Some(mat) => {
-            let start = length - line.len();
-            let kind = if KEYWORDS.contains(&mat.as_str()) {
-                TokenType::Keyword
+        let pat = self.patterns
+        .iter()
+        .map(|(pat, kind)| (kind, pat.find(&self.input[self.current..])))
+        .filter_map(|(kind, it)| {
+            if it.is_some() {
+                Some((kind, it.unwrap()))
             } else {
-                TokenType::Name
-            };
-            let token =  Token::new(
-                mat.as_str().to_owned(),
-                lineno,
-                start,
-                start + mat.end() ,
-                indent,
-                &kind
-            );
-            tokens.push(token);
-            let new_start = mat.end();
-            if new_start >= line.len() {
-                return;
+                None
             }
-            tokenize_rec(&line[mat.end()..], length, lineno, indent, tokens, patterns)
+        })
+        // .filter(|(_, mat)| mat.start() == self.current)
+        .max_by_key(|(_, mat)| mat.end());
+
+        let current_line: (usize, usize) = *self.lines.last().unwrap_or(&(0, 0));
+
+        if pat.is_some() {
+            let pat = pat.unwrap();
+            let start: usize = self.current - current_line.0;
+            let end = start + pat.1.end();
+            self.current += pat.1.end();
+            let start_line = self.lines.len();
+            if let Some(lines) = self.input[..pat.1.end()].chars().find_all(|c| *c == '\n') {
+                lines.iter().for_each(|_| self.lines.push((0, 0)));
+            }
+            let end_line = self.lines.len();
+            let token = Token::new(
+                pat.1.as_str().to_owned(),
+                start_line,
+                end_line,
+                start,
+                end,
+                current_line.1,
+                pat.0
+            );
+            return Some(token);
         }
 
-        None => {
-            println!("Gonna panic\n Line: {}, lineno: {}", line, lineno);
-            // panic!("Idk what's going on as this matches nothing");
+        if let Some(mat) = 
+            self.name_pattern.find(&self.input[self.current..]) {
+                let start = self.current - current_line.0;
+                let end = start + mat.end();
+                let kind = if KEYWORDS.contains(&mat.as_str()) {
+                    TokenType::Keyword
+                } else {
+                    TokenType::Name
+                };
+                let token =  Token::new(
+                    mat.as_str().to_owned(),
+                    self.lines.len(),
+                    self.lines.len(),
+                    start,
+                    end,
+                    current_line.1,
+                    &kind
+                );
+                self.current += mat.end();
+                return Some(token);
         }
+
+        // return None;
+        panic!("Didn't match any pattern, this is not python code. \nHere's the patterns found: {:?}", pat);
+    }
+}
+
+impl Iterator for Tokens {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(token) = self._next() {
+            self.tokens.push(token.to_owned());
+            return Some(token);
+        }
+        None
     }
 
     
 }
 
-
-pub fn tokenize(input: &str) -> Vec<Token> {
-    let mut tokens: Vec<Token> = Vec::new();
-
-    let patterns: Vec<(Regex, TokenType)> = PATTERN_SET
+pub fn tokenize(input: &str) -> Tokens {
+    let patterns: Vec<(Regex, TokenType)> = 
+    PATTERN_SET
         .iter()
         .map(|(pat, kind)| (Regex::new(pat).unwrap(), kind.clone()))
         .collect();
 
-    tokenize_rec(input, input.len(), 1, 0, &mut tokens, &patterns);
-    tokens
+    Tokens::new(input, patterns, Regex::new(NAME_REGEX).unwrap())
 }

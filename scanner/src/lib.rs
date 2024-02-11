@@ -14,14 +14,14 @@ mod tests {
     fn lexer() {
         println!("{}", env::var("FILE_TO_PARSE").unwrap());
         let content = fs::read_to_string(env::var("FILE_TO_PARSE").unwrap()).unwrap();
-        let start = Instant::now();
         let tokens = tokenize(&content);
-        let end = Instant::now();
-        println!("Elapsed time (rust): {:?}", end - start);
-
+        
+        let start = Instant::now();
         for token in tokens {
             println!("{:?}", token);
         }
+        let end = Instant::now();
+        println!("Elapsed time (rust): {:?}", end - start);
     }
 
     mod regex_tests {
