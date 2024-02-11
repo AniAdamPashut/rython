@@ -1,12 +1,18 @@
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Literal {
-    String,
-    ByteString,
-    RawString,
-    FormatString,
+    String(StringType),
+    MultilineString(StringType),
     Number,
     Boolean,
     None,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum StringType {
+    Normal,
+    Byte,
+    Raw,
+    Format,
 }
 
 pub const NUMERAL_REGEX: &str = r"^(0b[01]+|0o[0-7]+|0x[0-9A-Fa-f]+|-?[0-9]+\.?[0-9]*[eE]?-?[0-9]*)";

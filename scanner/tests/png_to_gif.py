@@ -6,7 +6,14 @@ from PIL import Image
 
 src_folder = "./images/"
 out = './out/'
+"""
+multiline 
 
+doc 
+
+
+string
+"""
 def cleanup(filename):
     os.remove(filename)
 
@@ -37,3 +44,4 @@ if __name__ == '__main__':
             exit(1)
     else:
         convert_all()
+#

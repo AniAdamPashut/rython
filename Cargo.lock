@@ -99,12 +99,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a3b40b97938cd51e8e285e12019dcd28b7e71d7398b6074d92308cebc03888f"
 
 [[package]]
-name = "lazy_static"
-version = "1.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
-
-[[package]]
 name = "memchr"
 version = "2.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -170,7 +164,6 @@ name = "scanner"
 version = "0.1.0"
 dependencies = [
  "find_all",
- "lazy_static",
  "regex",
  "tailcall",
 ]

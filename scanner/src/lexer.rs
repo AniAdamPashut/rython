@@ -40,6 +40,8 @@ pub enum TokenType {
     Keyword,
     Separator,
     Operator,
+    LineFeed,
+    Comment, // Maybe future use?
     Literal(Literal)
 }
 
@@ -82,21 +84,20 @@ const KEYWORDS: [&str; 32] = [
 const NAME_REGEX: &str = r"^[A-Za-z_][A-Za-z0-9_]*";
 
 const PATTERN_SET: [(&'static str, TokenType); 13] = [
-    (STRING_REGEX, TokenType::Literal(Literal::String)),
-    (BYTE_STRING_REGEX, TokenType::Literal(Literal::ByteString)),
-    (RAW_STRING_REGEX, TokenType::Literal(Literal::RawString)),
-    (FORMAT_STRING_REGEX, TokenType::Literal(Literal::FormatString)),
-    (MULTILINE_STRING_REGEX, TokenType::Literal(Literal::String)),
-    (BYTE_MULTILINE_STRING_REGEX, TokenType::Literal(Literal::ByteString)),
-    (RAW_MULTILINE_STRING_REGEX, TokenType::Literal(Literal::RawString)),
-    (FORMAT_MULTILINE_STRING_REGEX, TokenType::Literal(Literal::FormatString)),
+    (STRING_REGEX, TokenType::Literal(Literal::String(StringType::Normal))),
+    (BYTE_STRING_REGEX, TokenType::Literal(Literal::String(StringType::Byte))),
+    (RAW_STRING_REGEX, TokenType::Literal(Literal::String(StringType::Raw))),
+    (FORMAT_STRING_REGEX, TokenType::Literal(Literal::String(StringType::Format))),
+    (MULTILINE_STRING_REGEX, TokenType::Literal(Literal::MultilineString(StringType::Normal))),
+    (BYTE_MULTILINE_STRING_REGEX, TokenType::Literal(Literal::MultilineString(StringType::Byte))),
+    (RAW_MULTILINE_STRING_REGEX, TokenType::Literal(Literal::MultilineString(StringType::Raw))),
+    (FORMAT_MULTILINE_STRING_REGEX, TokenType::Literal(Literal::MultilineString(StringType::Format))),
     (NUMERAL_REGEX, TokenType::Literal(Literal::Number)),
     (BOOLEAN_REGEX, TokenType::Literal(Literal::Boolean)),
     (NONE_REGEX, TokenType::Literal(Literal::None)),
     (OPERATOR_REGEX, TokenType::Operator),
     (SEPARATOR_REGEX, TokenType::Separator),
 ];
-
 
 #[tailcall]
 fn tokenize_rec(
@@ -105,56 +106,68 @@ fn tokenize_rec(
     lineno: usize,
     indent: usize,
     tokens: &mut Vec<Token>,
-    patterns: &[(Regex, TokenType)],) {
+    patterns: &[(Regex, TokenType)],
+) {
 
-    match line.chars().nth(0) {
-        Some(c) => {
-            if c == '\n' {
-                let first_char = line.find(|c: char| !c.is_whitespace());
-                match first_char {
-                    Some(index) => {
-                        let all_newlines_between = line[..index].chars().find_all(|c| *c == '\n');
-                        let (offset, line_skip) = match all_newlines_between {
-                            None => (index - 1, 1),
-                            Some(vec) => {
-                                (index - vec[vec.len() - 1] - 1, vec.len() + 1)
-                            }
-                        };
-                        return tokenize_rec(&line[index..], length, lineno + line_skip, offset, tokens, patterns);
-                    }
-                    None => return
+    if None == line.chars().nth(0) {
+        return;
+    }
+
+    let c = line.chars().nth(0).unwrap();
+    if c == '\n' {
+        if let Some(index) = line.find(|c: char| !c.is_whitespace()) {
+            let all_newlines_between = line[..index].chars().find_all(|c| *c == '\n');
+            let (offset, line_skip) = match all_newlines_between {
+                None => (index - 1, 1),
+                Some(vec) => {
+                    vec
+                    .iter()
+                    .enumerate()
+                    .for_each(|(i, it) | {
+                        tokens.push(
+                            Token::new(
+                                String::from("\n"),
+                                lineno + i,
+                                length - line.len() + it,
+                                length - line.len() + 1 + it,
+                                0,
+                                &TokenType::LineFeed
+                            )
+                        );
+                    });
+                    (index - vec[vec.len() - 1] - 1, vec.len())
                 }
-            }
-
-            else if c.is_whitespace() {
-                return tokenize_rec(&line[1..], length, lineno, indent, tokens, patterns);
-            }
-
-            if c == '#' {
-                let next_line = line.find('\n');
-                match next_line {
-                    Some(index) => return tokenize_rec(&line[index..], length, lineno + 1, indent, tokens, patterns),
-                    None => return
-                }
-            }
+            };
+            return tokenize_rec(&line[index..], length, lineno + line_skip, offset, tokens, patterns);
         }
-        None => {
-            return;
+        return;
+    }
+
+    if c.is_whitespace() {
+        return tokenize_rec(&line[1..], length, lineno, indent, tokens, patterns);
+    }
+
+    if c == '#' {
+        if let Some(index) = line.find('\n') {
+            return tokenize_rec(&line[index..], length, lineno + 1, indent, tokens, patterns);
         }
+        return;
     }
 
 
     let pat = patterns
     .iter()
     .map(|(pat, kind)| (kind, pat.find(line)))
-    .filter_map(|(pat, it)| {
+    .filter_map(|(kind, it)| {
         if it.is_some() {
-            Some((pat, it.unwrap()))
+            Some((kind, it.unwrap()))
         } else {
             None
         }
     })
+    .filter(|(_, mat)| mat.start() == 0)
     .max_by_key(|(_, mat)| mat.end());
+
     if pat.is_some() {
         let pat = pat.unwrap();
         let new_start = pat.1.end() + length - line.len();
@@ -168,7 +181,17 @@ fn tokenize_rec(
             pat.0
         );
         tokens.push(token);
-        return tokenize_rec(&line[pat.1.end()..], length, lineno, indent, tokens, patterns);       
+
+        let lines_skipped = match pat.0 {
+            TokenType::Literal(Literal::MultilineString(_)) => {
+                match line[..pat.1.end()].chars().find_all(|c| *c == '\n') {
+                    Some(i) => i.len(),
+                    None => 0
+                }
+            }
+            _ => 0
+        };
+        return tokenize_rec(&line[pat.1.end()..], length, lineno + lines_skipped, indent, tokens, patterns);       
     }
     
 

@@ -9,6 +9,7 @@ def main():
     files = os.listdir('./tests/')
     os.system('rm -rf ./out/*')
     for file in files:
+        print(file)
         start = time.perf_counter()
         os.system(f"RUST_BACKTRACE=1 FILE_TO_PARSE=./tests/{file} cargo test lexer --release --lib -- --nocapture > ./out/{file}.out")
         end = time.perf_counter()
