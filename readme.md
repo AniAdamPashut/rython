@@ -8,3 +8,4 @@ What Does This Do **Currently**?
 
 ### If you want to run the scanner read it's readme
 
+(The Python Language Reference)[https://docs.python.org/3/reference/index.html]
