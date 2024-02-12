@@ -22,7 +22,7 @@ impl Token {
         start: usize,
         end: usize,
         indent: usize,
-        kind: &TokenType
+        kind: TokenType
     ) -> Token {
         Token {
             val,
@@ -87,16 +87,17 @@ const KEYWORDS: [&str; 32] = [
 
 const NAME_REGEX: &str = r"^[A-Za-z_][A-Za-z0-9_]*";
 
-const PATTERN_SET: [(&'static str, TokenType); 13] = [
-    (STRING_REGEX, TokenType::Literal(Literal::String(StringType::Normal))),
-    (BYTE_STRING_REGEX, TokenType::Literal(Literal::String(StringType::Byte))),
-    (RAW_STRING_REGEX, TokenType::Literal(Literal::String(StringType::Raw))),
-    (FORMAT_STRING_REGEX, TokenType::Literal(Literal::String(StringType::Format))),
-    (MULTILINE_STRING_REGEX, TokenType::Literal(Literal::MultilineString(StringType::Normal))),
-    (BYTE_MULTILINE_STRING_REGEX, TokenType::Literal(Literal::MultilineString(StringType::Byte))),
-    (RAW_MULTILINE_STRING_REGEX, TokenType::Literal(Literal::MultilineString(StringType::Raw))),
-    (FORMAT_MULTILINE_STRING_REGEX, TokenType::Literal(Literal::MultilineString(StringType::Format))),
-    (NUMERAL_REGEX, TokenType::Literal(Literal::Number)),
+const PATTERN_SET: [(&str, TokenType); 14] = [
+    (STRING_REGEX, TokenType::Literal(Literal::String(StringType::new(false, false, false)))),
+    (BYTE_STRING_REGEX, TokenType::Literal(Literal::String(StringType::new(true, false, false)))),
+    (MULTILINE_STRING_REGEX, TokenType::Literal(Literal::MultilineString(StringType::new(false, false, false)))),
+    (BYTE_MULTILINE_STRING_REGEX, TokenType::Literal(Literal::MultilineString(StringType::new(true, false, false)))),
+    (INTEGER_REGEX, TokenType::Literal(Literal::Number(Numeral::Int))),
+    (FLOAT_REGEX, TokenType::Literal(Literal::Number(Numeral::Float))),
+    (HEX_REGEX, TokenType::Literal(Literal::Number(Numeral::Hex))),
+    (OCTAL_REGEX, TokenType::Literal(Literal::Number(Numeral::Octal))),
+    (BINARY_REGEX, TokenType::Literal(Literal::Number(Numeral::Binary))),
+    (IMAGINARY_REGEX, TokenType::Literal(Literal::Number(Numeral::Imaginary))),
     (BOOLEAN_REGEX, TokenType::Literal(Literal::Boolean)),
     (NONE_REGEX, TokenType::Literal(Literal::None)),
     (OPERATOR_REGEX, TokenType::Operator),
@@ -108,6 +109,7 @@ pub struct Tokens {
     current: usize,
     is_in_bracket: bool,
     lines: Vec<(usize, usize)>, 
+    is_line_empty: bool,
     patterns: Vec<(Regex, TokenType)>,
     name_pattern: Regex
 }
@@ -123,6 +125,7 @@ impl Tokens {
             current: 0,
             is_in_bracket: false,
             lines: vec![(0, 0)],
+            is_line_empty: false,
             patterns: patterns.to_owned(),
             name_pattern: name_pattern.to_owned(),
         }
@@ -162,7 +165,7 @@ impl Iterator for Tokens {
         
         
         let c =  self.input.chars().nth(self.current).unwrap();
-
+        print!("{}", c);
         if "$?`".contains(c) {
             let msg = format!("Invalid character {}", c);
             self.terminate(msg);
@@ -177,6 +180,12 @@ impl Iterator for Tokens {
         }
 
         if c == '\n' && !self.is_in_bracket {
+            if self.is_line_empty {
+                self.lines.push((0, 0));
+                self.current += 1;
+                return self.next();
+            }
+            self.is_line_empty = true;
             let length_until_line: usize = self.current;
             let indentation_level = self.input[self.current+1..].find(|c: char| c == '\n' || !c.is_whitespace()).unwrap_or(0);
             if self.input.chars().nth(indentation_level).unwrap() == '\n' {
@@ -186,16 +195,16 @@ impl Iterator for Tokens {
             }
             self.lines.push((length_until_line, indentation_level));
             self.current += 1;
-            return Some(                
-                Token::new(
-                    String::from("\n"),
-                    self.lines.len() - 1,
-                    self.lines.len(),
-                    0,
-                    1,
-                    0,
-                    &TokenType::LineFeed,
-                ));
+            let tok = Token::new(
+                String::from("\n"),
+                self.lines.len() - 1,
+                self.lines.len(),
+                0,
+                1,
+                0,
+                TokenType::LineFeed,
+            );
+            return Some(tok);
         }
 
         if c.is_whitespace() {
@@ -211,9 +220,11 @@ impl Iterator for Tokens {
             return None;
         }
 
+        self.is_line_empty = false;
+
         let pat = self.patterns
         .iter()
-        .map(|(pat, kind)| (kind, pat.find(&self.input[self.current..])))
+        .map(|(pat, kind)| (kind.clone(), pat.find(&self.input[self.current..])))
         .filter_map(|(kind, it)| {
             if it.is_some() {
                 Some((kind, it.unwrap()))
@@ -233,12 +244,17 @@ impl Iterator for Tokens {
             let start_line = self.lines.len();
             if let Some(lines) = pat.1.as_str().chars().find_all(|c| *c == '\n') {
                 match pat.0 {
-                    &TokenType::Literal(Literal::MultilineString(_)) => 
+                    TokenType::Literal(Literal::MultilineString(_)) => 
                         lines.iter().for_each(|_| self.lines.push((0, 0))),
                     _ => self.terminate(format!("Cannot span over multiple lines\n{}\n{}", pat.1.as_str(), "^".repeat(pat.1.as_str().len())))
                 }
             }
 
+            let kind = match pat.0 {
+                TokenType::Literal(Literal::String(_)) => TokenType::Literal(Literal::String(StringType::from_match(&pat.1.as_str()[..2]))),
+                TokenType::Literal(Literal::MultilineString(_)) => TokenType::Literal(Literal::MultilineString(StringType::from_match(&pat.1.as_str()[..2]))),
+                _ => pat.0
+            };
             let end_line = self.lines.len();
             let token = Token::new(
                 pat.1.as_str().to_owned(),
@@ -247,7 +263,7 @@ impl Iterator for Tokens {
                 start,
                 end,
                 current_line.1,
-                pat.0
+                kind
             );
             return Some(token);
         }
@@ -271,13 +287,13 @@ impl Iterator for Tokens {
                     start,
                     end,
                     current_line.1,
-                    &kind
+                    kind
                 );
                 self.current += mat.end();
                 return Some(token);
         }
 
-        self.terminate("Didn't match any pattern, problem near line".to_owned());
+        self.terminate("Didn't match any pattern".to_owned());
     }
 }
 

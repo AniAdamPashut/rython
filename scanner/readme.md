@@ -3,7 +3,8 @@
 Todo
 ---
 - more idiomatic code
-- widen support for literals (numbers and strings)
+- Fix bug with float number regex (and possibly imaginary) (fk regex man)
+- ~~widen support for literals strings~~
 
 How to try
 ---

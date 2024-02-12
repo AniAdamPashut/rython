@@ -4,6 +4,7 @@ import os
 import time
 import sys
 
+""
 
 def main():
     files = os.listdir('./tests/')

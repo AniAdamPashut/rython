@@ -6,6 +6,7 @@ pub use lexer::tokenize;
 #[cfg(test)]
 mod tests {
     use crate::lexer::tokenize;
+    use crate::literals::FLOAT_REGEX;
     use std::fs;
     use std::env;
     use std::time::Instant;
@@ -15,7 +16,7 @@ mod tests {
         println!("{}", env::var("FILE_TO_PARSE").unwrap());
         let content = fs::read_to_string(env::var("FILE_TO_PARSE").unwrap()).unwrap();
         let tokens = tokenize(&content);
-        
+        println!("{}", FLOAT_REGEX);
         let start = Instant::now();
         for token in tokens {
             println!("{:?}", token);
