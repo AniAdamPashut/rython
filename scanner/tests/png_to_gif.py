@@ -4,6 +4,7 @@ import os
 import sys
 from PIL import Image
 
+
 src_folder = "./images/"
 out = './out/'
 """

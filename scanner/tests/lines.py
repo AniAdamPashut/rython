@@ -1,5 +1,11 @@
-x = ""
+import re
 
-if x == "" \
-    or x != "a":
-    print("good x")
+def parse(string):
+    stack = []
+    digit = r"[0-9]+"
+    op = r"\+|-|\*|\/"
+    patterns = [digit, op]
+    while True:
+        i = 0
+        map(lambda pat: re.match(pat, string[i:]), patterns)
+        

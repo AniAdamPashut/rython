@@ -17,7 +17,7 @@ pub enum StringType {
 
 pub const NUMERAL_REGEX: &str = r"^(0b[01]+|0o[0-7]+|0x[0-9A-Fa-f]+|-?[0-9]+\.?[0-9]*[eE]?-?[0-9]*)";
 pub const STRING_REGEX: &str = r#"^("([^"\\]|\\[\s\S])*"|'([^'\\]|\\[\s\S])*')"#;
-pub const BYTE_STRING_REGEX: &str = r#"^b("([^"\\]|\\[\s\S])*"|'([^'\\]|\\[\s\S])*')"#;
+pub const BYTE_STRING_REGEX: &str = r#"^b("([^"\\]|\\[\S])*"|'([^'\\]|\\[\s\S])*')"#;
 pub const RAW_STRING_REGEX: &str = r#"^r("([^"\\]|\\[\s\S])*"|'([^'\\]|\\[\s\S])*')"#;
 pub const FORMAT_STRING_REGEX: &str = r#"^f("([^"\\]|\\[\s\S])*"|'([^'\\]|\\[\s\S])*')"#;
 pub const MULTILINE_STRING_REGEX: &str = r#"^("""[^"""]*"""|'''[^''']*''')"#;

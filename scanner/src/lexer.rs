@@ -55,6 +55,7 @@ The long list of operators
 <       >       <=      >=      ==      !=
 */
 const OPERATOR_REGEX: &str = r"^(\*\*|\*|\+|-|\/\/|\/|%|<<|>>|&|\||\^|~|:=|<|>|<=|>=|==|!=|=)";
+
 /*
 The ultimate list of delimiters
 (       )       [       ]       {       }
@@ -63,8 +64,9 @@ The ultimate list of delimiters
 &=      |=      ^=      >>=     <<=     **=
 */
 const SEPARATOR_REGEX: &str = r"^(\(|\)|\{|\}|\[|\]|,|\.|:|;|@|->|\+=|-=|\/=|\/\/=|%=|@=|&=|\|=|\^=|>>=|<<=|\*\*=|\*=)";
+
 /* 
-The insatiable list of keywords 
+The insatiable list of keywords
 await      else       import     pass
 break      except     in         raise
 class      finally    is         return
@@ -104,6 +106,7 @@ const PATTERN_SET: [(&'static str, TokenType); 13] = [
 pub struct Tokens {
     input: String,
     current: usize,
+    is_in_bracket: bool,
     lines: Vec<(usize, usize)>, 
     patterns: Vec<(Regex, TokenType)>,
     name_pattern: Regex
@@ -118,15 +121,30 @@ impl Tokens {
         Tokens {
             input: input.to_owned(),
             current: 0,
-            lines: Vec::new(),
+            is_in_bracket: false,
+            lines: vec![(0, 0)],
             patterns: patterns.to_owned(),
             name_pattern: name_pattern.to_owned(),
         }
-    }
+    } 
 
+    fn terminate(&self, msg: String) -> ! {
+        eprintln!("The Scanner Found an Error @ {}:{}", self.lines.len(), self.get_start_from_line());
+        eprintln!("{}", msg);
+        eprintln!("\n");
+        std::process::exit(1);
+    }
 
     pub fn lines(&self) -> usize {
         self.lines.len()
+    }
+
+    fn get_current_line(&self) -> (usize, usize) {
+        if let Some(line) = self.lines.last() {
+            *line
+        } else {
+            (0, 0)
+        }
     }
 
     fn get_start_from_line(&self) -> usize {
@@ -141,20 +159,31 @@ impl Iterator for Tokens {
         if self.current >= self.input.len() {
             return None;
         }
-
+        
+        
         let c =  self.input.chars().nth(self.current).unwrap();
+
+        if "$?`".contains(c) {
+            let msg = format!("Invalid character {}", c);
+            self.terminate(msg);
+        }
 
         if c == '\\' {
             if self.input.chars().nth(self.current + 1).unwrap_or(' ') != '\n' {
-                panic!("Statements need to be separated by newlines or semicolons  {}:{}", self.lines(), self.get_start_from_line())
+                self.terminate("Statements need to be separated by newlines or semicolons".to_string())
             }
             self.current += 2;
             return self.next();
         }
 
-        if c == '\n' {
+        if c == '\n' && !self.is_in_bracket {
             let length_until_line: usize = self.current;
-            let indentation_level = self.input[self.current+1..].find(|c: char| !c.is_whitespace()).unwrap_or(0);
+            let indentation_level = self.input[self.current+1..].find(|c: char| c == '\n' || !c.is_whitespace()).unwrap_or(0);
+            if self.input.chars().nth(indentation_level).unwrap() == '\n' {
+                self.lines.push((0, 0));
+                self.current = indentation_level;
+                return self.next();
+            }
             self.lines.push((length_until_line, indentation_level));
             self.current += 1;
             return Some(                
@@ -192,20 +221,24 @@ impl Iterator for Tokens {
                 None
             }
         })
-        // .filter(|(_, mat)| mat.start() == self.current)
+// .filter(|(_, mat)| mat.start() == 0) wasted check, regex contains that themselves
         .max_by_key(|(_, mat)| mat.end());
 
-        let current_line: (usize, usize) = *self.lines.last().unwrap_or(&(0, 0));
-
+        let current_line = self.get_current_line();
         if pat.is_some() {
             let pat = pat.unwrap();
             let start: usize = self.current - current_line.0;
             let end = start + pat.1.end();
             self.current += pat.1.end();
             let start_line = self.lines.len();
-            if let Some(lines) = self.input[..pat.1.end()].chars().find_all(|c| *c == '\n') {
-                lines.iter().for_each(|_| self.lines.push((0, 0)));
+            if let Some(lines) = pat.1.as_str().chars().find_all(|c| *c == '\n') {
+                match pat.0 {
+                    &TokenType::Literal(Literal::MultilineString(_)) => 
+                        lines.iter().for_each(|_| self.lines.push((0, 0))),
+                    _ => self.terminate(format!("Cannot span over multiple lines\n{}\n{}", pat.1.as_str(), "^".repeat(pat.1.as_str().len())))
+                }
             }
+
             let end_line = self.lines.len();
             let token = Token::new(
                 pat.1.as_str().to_owned(),
@@ -221,6 +254,9 @@ impl Iterator for Tokens {
 
         if let Some(mat) = 
             self.name_pattern.find(&self.input[self.current..]) {
+                if "(){}[]".contains(mat.as_str()) {
+                    self.is_in_bracket = true
+                }
                 let start = self.current - current_line.0;
                 let end = start + mat.end();
                 let kind = if KEYWORDS.contains(&mat.as_str()) {
@@ -241,8 +277,7 @@ impl Iterator for Tokens {
                 return Some(token);
         }
 
-        // return None;
-        panic!("Didn't match any pattern, problem near line {}:{}", self.lines.len() + 1, self.current - self.lines.last().unwrap_or(&(0, 0)).0);
+        self.terminate("Didn't match any pattern, problem near line".to_owned());
     }
 }
 
