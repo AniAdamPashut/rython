@@ -12,10 +12,10 @@ const DIGIT: &str = r"[0-9_]*";
 const DIGIT_PART: &str = formatcp!("[0-9]{DIGIT}");
 pub const INTEGER_REGEX: &str = formatcp!("^({DIGIT_PART})");
 const FRACTION: &str = formatcp!(r"\.{DIGIT_PART}");
-const POINT_FLOAT: &str = formatcp!(r"([{DIGIT_PART}]{FRACTION})|(({DIGIT_PART})\.)");
+const POINT_FLOAT: &str = formatcp!(r"([{DIGIT_PART}]*{FRACTION})|(({DIGIT_PART})\.)");
 const EXPONENT: &str = formatcp!(r"(e|E)(\+|-)?({DIGIT_PART})");
-const EXPONENT_FLOAT: &str = formatcp!(r"(({DIGIT_PART})|({POINT_FLOAT}){EXPONENT})");
-pub const FLOAT_REGEX: &str = formatcp!("^(({POINT_FLOAT})|({EXPONENT_FLOAT}))");
+const EXPONENT_FLOAT: &str = formatcp!(r"(({DIGIT_PART})|({POINT_FLOAT})){EXPONENT}");
+pub const FLOAT_REGEX: &str = formatcp!("^(({EXPONENT_FLOAT})|({POINT_FLOAT}))");
 
 pub const IMAGINARY_REGEX: &str = formatcp!("^(({FLOAT_REGEX})|({DIGIT_PART}))(j|J)");
 

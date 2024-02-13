@@ -3,7 +3,8 @@
 Todo
 ---
 - more idiomatic code
-- Fix bug with float number regex (and possibly imaginary) (fk regex man)
+- fix the off-by-n where n is the number of empty lines
+- ~~Fix bug with float number regex (and possibly imaginary) (fk regex man)~~
 - ~~widen support for literals strings~~
 
 How to try
