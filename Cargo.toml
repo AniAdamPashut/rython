@@ -2,6 +2,7 @@
 
 members = [
     "scanner",
+    "parser",
     "rython"
 ]
 resolver = "2"

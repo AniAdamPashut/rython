@@ -1,11 +1,10 @@
 # The Lexical Analyzer (Scanner)
 
+This is currently finished, 
+
 Todo
 ---
 - more idiomatic code
-- fix the off-by-n where n is the number of empty lines
-- ~~Fix bug with float number regex (and possibly imaginary) (fk regex man)~~
-- ~~widen support for literals strings~~
 
 How to try
 ---
