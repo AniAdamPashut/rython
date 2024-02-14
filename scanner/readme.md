@@ -1,6 +1,6 @@
 # The Lexical Analyzer (Scanner)
 
-This is currently finished, 
+This is currently finished, except bug fixes when found
 
 Todo
 ---

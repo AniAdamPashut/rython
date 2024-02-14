@@ -1,15 +1,14 @@
 use regex::Regex;
 use crate::literals::*;
 
-use crate::token::{TokenType, Tokens};
+use crate::token::{Operators, Separators, TokenType, Tokens, Keywords};
 
-/*
-The long list of operators
-+       -       *       **      /       //      %      @
-<<      >>      &       |       ^       ~       :=
-<       >       <=      >=      ==      !=
-*/
-const OPERATOR_REGEX: &str = r"^(\*\*|\*|\+|-|\/\/|\/|%|<<|>>|&|\||\^|~|:=|<|>|<=|>=|==|!=|=)";
+const MATH_OPERATOR_REGEX: &str = r"^(\*\*|\*|\+|-|\/\/|\/|%)";
+const BINARY_OPERATOR_REGEX: &str = r"^(<<|>>|&|\||\^|~)";
+const BOOLEAN_OPERATOR_REGEX: &str = r"^(<|>|<=|>=|==|!=)";
+const ASSIGNMENT_OPERATOR_REGEX: &str = r"^(:=|=)";
+const ARITHMETIC_AUGMENTED_ASSIGNMENT_REGEX: &str = r"^(\+=|-=|\/=|\/\/=|%=|@=|\*\*=|\*=)";
+const BINARY_AUGMENTED_ASSIGNMENT_REGEX: &str = r"^(&=|\|=|\^=|>>=|<<=)";
 
 /*
 The ultimate list of delimiters
@@ -18,8 +17,8 @@ The ultimate list of delimiters
 +=      -=      *=      /=      //=     %=      @=
 &=      |=      ^=      >>=     <<=     **=
 */
-const SEPARATOR_REGEX: &str = r"^(\(|\)|\{|\}|\[|\]|,|\.|:|;|@|->|\+=|-=|\/=|\/\/=|%=|@=|&=|\|=|\^=|>>=|<<=|\*\*=|\*=)";
-
+const BRACKET_SEPARATOR_REGEX: &str = r"^(\(|\)|\{|\}|\[|\])";
+const STATEMENT_SEPARATOR_REGEX: &str = r"^(,|\.|:|;|@|->)";
 /* 
 The insatiable list of keywords
 await      else       import     pass
@@ -30,33 +29,36 @@ as         def        from       nonlocal   while
 assert     del        global     not        with
 async      elif       if         or         yield
 */
-const KEYWORDS: [&str; 32] = [
-    "await", "else", "import", "pass", "try",
-    "break", "except", "in", "raise", "while",
-    "class", "finally", "is", "return", "with",
-    "and", "continue", "for", "lambda", "yield",
-    "as", "def", "from", "nonlocal",
-    "assert", "del", "global", "not",
-    "async", "elif", "if", "or",
-];
+const BLOCK_KEYWORDS_REGEX: &str = r"^(else|try|except|while|class|finally|with|for|def|elif|if)\s";
+const SIMPLE_KEYWORDS_REGEX: &str = r"^(async|await|lambda|import|continue|global|nonlocal|yield|pass|assert|del|return|type|raise|from)\s";
+const OPERATOR_KEYWORDS_REGEX: &str = r"^(or|not|and|is|as|in)\s";
 
 const NAME_REGEX: &str = r"^[A-Za-z_][A-Za-z0-9_]*";
 
-const PATTERN_SET: [(&str, TokenType); 14] = [
-    (STRING_REGEX, TokenType::Literal(Literal::String(StringType::new(false, false, false)))),
-    (BYTE_STRING_REGEX, TokenType::Literal(Literal::String(StringType::new(true, false, false)))),
-    (MULTILINE_STRING_REGEX, TokenType::Literal(Literal::MultilineString(StringType::new(false, false, false)))),
-    (BYTE_MULTILINE_STRING_REGEX, TokenType::Literal(Literal::MultilineString(StringType::new(true, false, false)))),
-    (INTEGER_REGEX, TokenType::Literal(Literal::Number(Numeral::Int))),
-    (FLOAT_REGEX, TokenType::Literal(Literal::Number(Numeral::Float))),
-    (HEX_REGEX, TokenType::Literal(Literal::Number(Numeral::Hex))),
-    (OCTAL_REGEX, TokenType::Literal(Literal::Number(Numeral::Octal))),
-    (BINARY_REGEX, TokenType::Literal(Literal::Number(Numeral::Binary))),
-    (IMAGINARY_REGEX, TokenType::Literal(Literal::Number(Numeral::Imaginary))),
-    (BOOLEAN_REGEX, TokenType::Literal(Literal::Boolean)),
-    (NONE_REGEX, TokenType::Literal(Literal::None)),
-    (OPERATOR_REGEX, TokenType::Operator),
-    (SEPARATOR_REGEX, TokenType::Separator),
+const PATTERN_SET: [(&str, TokenType); 23] = [
+    (STRING_REGEX, TokenType::Literal(LiteralTypes::LiteralString(StringType::new(false, false, false)))),
+    (BYTE_STRING_REGEX, TokenType::Literal(LiteralTypes::LiteralString(StringType::new(true, false, false)))),
+    (MULTILINE_STRING_REGEX, TokenType::Literal(LiteralTypes::MultilineString(StringType::new(false, false, false)))),
+    (BYTE_MULTILINE_STRING_REGEX, TokenType::Literal(LiteralTypes::MultilineString(StringType::new(true, false, false)))),
+    (INTEGER_REGEX, TokenType::Literal(LiteralTypes::Number(Numeral::Int))),
+    (FLOAT_REGEX, TokenType::Literal(LiteralTypes::Number(Numeral::Float))),
+    (HEX_REGEX, TokenType::Literal(LiteralTypes::Number(Numeral::Hex))),
+    (OCTAL_REGEX, TokenType::Literal(LiteralTypes::Number(Numeral::Octal))),
+    (BINARY_REGEX, TokenType::Literal(LiteralTypes::Number(Numeral::Binary))),
+    (IMAGINARY_REGEX, TokenType::Literal(LiteralTypes::Number(Numeral::Imaginary))),
+    (BOOLEAN_REGEX, TokenType::Literal(LiteralTypes::Boolean)),
+    (NONE_REGEX, TokenType::Literal(LiteralTypes::LiteralNone)),
+    (MATH_OPERATOR_REGEX, TokenType::Operator(Operators::Mathematic)),
+    (BINARY_OPERATOR_REGEX, TokenType::Operator(Operators::Bitwise)),
+    (BOOLEAN_OPERATOR_REGEX, TokenType::Operator(Operators::Boolean)),
+    (ASSIGNMENT_OPERATOR_REGEX, TokenType::Operator(Operators::Assignment)),
+    (ARITHMETIC_AUGMENTED_ASSIGNMENT_REGEX, TokenType::Operator(Operators::AugmentedArithmetic)),
+    (BINARY_AUGMENTED_ASSIGNMENT_REGEX, TokenType::Operator(Operators::AugmentedBitwise)),
+    (BRACKET_SEPARATOR_REGEX, TokenType::Separator(Separators::Bracket)),
+    (STATEMENT_SEPARATOR_REGEX, TokenType::Separator(Separators::Statement)),
+    (BLOCK_KEYWORDS_REGEX, TokenType::Keyword(Keywords::Block)),
+    (SIMPLE_KEYWORDS_REGEX, TokenType::Keyword(Keywords::Simple)),
+    (OPERATOR_KEYWORDS_REGEX, TokenType::Keyword(Keywords::Operators)),
 ];
 
 pub fn tokenize(input: &str) -> Tokens {
@@ -66,5 +68,5 @@ pub fn tokenize(input: &str) -> Tokens {
         .map(|(pat, kind)| (Regex::new(pat).unwrap(), kind.clone()))
         .collect();
 
-    Tokens::new(input, patterns, Regex::new(NAME_REGEX).unwrap(), KEYWORDS)
+    Tokens::new(input, patterns, Regex::new(NAME_REGEX).unwrap())
 }

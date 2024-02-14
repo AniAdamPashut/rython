@@ -37,16 +37,38 @@ impl Token {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum Operators {
+    Bitwise,
+    Boolean,
+    Mathematic,
+    Assignment,
+    AugmentedArithmetic,
+    AugmentedBitwise,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum Separators {
+    Bracket,
+    Statement,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum Keywords {
+    Block,
+    Simple,
+    Operators,
+}
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TokenType {
     Name,
-    Keyword,
-    Separator,
-    Operator,
     LineFeed,
     Comment, // Maybe future use?
-    Literal(Literal)
+    Keyword(Keywords),
+    Separator(Separators),
+    Operator(Operators),
+    Literal(LiteralTypes)
 }
 
 pub struct Tokens {
@@ -59,7 +81,6 @@ pub struct Tokens {
     last_was_linefeed: bool,
     patterns: Vec<(Regex, TokenType)>,
     name_pattern: Regex,
-    keywords: [&'static str; 32],
 }
 
 impl Tokens {
@@ -67,7 +88,6 @@ impl Tokens {
         input: &str, 
         patterns: Vec<(Regex, TokenType)>,
         name_pattern: Regex,
-        keywords: [&'static str; 32],
     ) -> Self {
         Tokens {
             input: input.to_owned(),
@@ -79,7 +99,6 @@ impl Tokens {
             last_was_linefeed: true ,
             patterns: patterns.to_owned(),
             name_pattern: name_pattern.to_owned(),
-            keywords,
         }
     } 
 
@@ -119,15 +138,26 @@ impl Iterator for Tokens {
             return self.next();
         }
 
-        if c == '\n' && !self.is_in_bracket {
+        if c == '\n' {
             self.physical_lines += 1;
+        }
+
+        if c == '\n' && !self.is_in_bracket {
             self.current += 1;
             if self.last_was_linefeed {
                 return self.next();
             }
             self.last_was_linefeed = true;
-            self.current_indentation = self.input[self.current..].find(|c: char|!c.is_whitespace()).unwrap_or(0);
-            self.current += self.current_indentation;
+            let indentation = self.input[self.current..].find(|c: char|!c.is_whitespace());
+            if None == indentation {
+                return None;
+            }
+            let indentation = indentation.unwrap();
+            if let Some(lines) = self.input[self.current..self.current + indentation].chars().find_all(|c| *c == '\n') {
+                self.physical_lines += lines.len();
+                self.current_indentation = indentation - *lines.last().unwrap_or(&0)
+            }
+            self.current += indentation;
             let tok = Token::new(
                 None,
                 self.physical_lines - 1,
@@ -145,7 +175,8 @@ impl Iterator for Tokens {
             self.current += 1;
             return self.next();
         }
-
+        
+        
         if c == '#' {
             if let Some(index) = self.input[self.current..].find('\n') {
                 self.current += index;
@@ -153,7 +184,7 @@ impl Iterator for Tokens {
             }
             return None;
         }
-
+        
         self.last_was_linefeed = false;
 
         let pat = self.patterns
@@ -168,26 +199,40 @@ impl Iterator for Tokens {
         })
         .max_by_key(|(_, mat)| mat.end());
 
-        if pat.is_some() {
-            let pat = pat.unwrap();
+        if let Some(pat) = pat {
             let start: usize = self.start_from_line();
             let end = start + pat.1.end();
             let start_line = self.physical_lines;
             if let Some(lines) = pat.1.as_str().chars().find_all(|c| *c == '\n') {
                 match pat.0 {
-                    TokenType::Literal(Literal::MultilineString(_)) => 
+                    TokenType::Literal(LiteralTypes::MultilineString(_)) => 
                         self.physical_lines += lines.len(),
+                    TokenType::Keyword(Keywords::Simple) if lines.len() == 1 => self.physical_lines += 1,
                     _ => self.terminate(format!("Cannot span over multiple lines\n{}\n{}", pat.1.as_str(), "^".repeat(pat.1.as_str().len())))
                 }
             }
+
+            if pat.1.as_str().contains("([{") {
+                self.is_in_bracket = true;
+            }
+
+            if pat.1.as_str().contains("}])") {
+                self.is_in_bracket = false;
+            }
+            
             
             let kind = match pat.0 {
-                TokenType::Literal(Literal::String(_)) => TokenType::Literal(Literal::String(StringType::from_match(&pat.1.as_str()[..2]))),
-                TokenType::Literal(Literal::MultilineString(_)) => TokenType::Literal(Literal::MultilineString(StringType::from_match(&pat.1.as_str()[..2]))),
+                TokenType::Literal(LiteralTypes::LiteralString(_)) => TokenType::Literal(LiteralTypes::LiteralString(StringType::from_match(&pat.1.as_str()[..2]))),
+                TokenType::Literal(LiteralTypes::MultilineString(_)) =>TokenType::Literal(LiteralTypes::MultilineString(StringType::from_match(&pat.1.as_str()[..2]))),
                 _ => pat.0
             };
+
+            let value = match pat.0 {
+                TokenType::Keyword(_) => Some(pat.1.as_str().trim().to_owned()),
+                _ => Some(pat.1.as_str().to_owned()),
+            };
             let token = Token::new(
-                Some(pat.1.as_str().to_owned()),
+                value,
                 start_line,
                 self.physical_lines,
                 start,
@@ -206,11 +251,7 @@ impl Iterator for Tokens {
                 }
                 let start = self.start_from_line();
                 let end = start + mat.end();
-                let kind = if self.keywords.contains(&mat.as_str()) {
-                    TokenType::Keyword
-                } else {
-                    TokenType::Name
-                };
+                
                 let token =  Token::new(
                     Some(mat.as_str().to_owned()),
                     self.physical_lines,
@@ -218,7 +259,7 @@ impl Iterator for Tokens {
                     start,
                     end,
                     self.current_indentation,
-                    kind
+                    TokenType::Name
                 );
                 self.current += mat.end();
                 return Some(token);

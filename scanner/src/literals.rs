@@ -5,12 +5,12 @@ pub use self::string_literals::*;
 pub use self::numbers::*;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum Literal {
-    String(StringType),
+pub enum LiteralTypes {
+    LiteralString(StringType),
     MultilineString(StringType),
     Number(Numeral),
     Boolean,
-    None,
+    LiteralNone,
 }
 
 pub const BOOLEAN_REGEX: &str = r"^(True|False)";

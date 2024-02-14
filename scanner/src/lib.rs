@@ -3,6 +3,7 @@ mod lexer;
 mod literals;
 
 pub use lexer::tokenize;
+pub use token::{Token, TokenType, Tokens};
 
 #[cfg(test)]
 mod tests {
