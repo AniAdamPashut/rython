@@ -35,6 +35,10 @@ impl Token {
             kind: kind.to_owned()
         }
     }
+
+    pub fn kind(&self) -> TokenType {
+        self.kind
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -78,7 +82,6 @@ pub struct Tokens {
     current_indentation: usize,
     physical_lines: usize,
     is_in_bracket: bool,
-    last_was_linefeed: bool,
     patterns: Vec<(Regex, TokenType)>,
     name_pattern: Regex,
 }
@@ -96,7 +99,6 @@ impl Tokens {
             last_linefeed: 0,
             current_indentation: 0,
             physical_lines: 1,
-            last_was_linefeed: true ,
             patterns: patterns.to_owned(),
             name_pattern: name_pattern.to_owned(),
         }
@@ -144,10 +146,6 @@ impl Iterator for Tokens {
 
         if c == '\n' && !self.is_in_bracket {
             self.current += 1;
-            if self.last_was_linefeed {
-                return self.next();
-            }
-            self.last_was_linefeed = true;
             let indentation = self.input[self.current..].find(|c: char|!c.is_whitespace());
             if None == indentation {
                 return None;
@@ -185,7 +183,6 @@ impl Iterator for Tokens {
             return None;
         }
         
-        self.last_was_linefeed = false;
 
         let pat = self.patterns
         .iter()
