@@ -1,0 +1,392 @@
+Module(
+  body=[
+    Import(
+      names=[
+        alias(name='socket')]),
+    ImportFrom(
+      module='typing',
+      names=[
+        alias(name='Callable')],
+      level=0),
+    ClassDef(
+      name='Server',
+      bases=[],
+      keywords=[],
+      body=[
+        FunctionDef(
+          name='__init__',
+          args=arguments(
+            posonlyargs=[],
+            args=[
+              arg(arg='self'),
+              arg(arg='ip'),
+              arg(arg='port')],
+            kwonlyargs=[],
+            kw_defaults=[],
+            defaults=[]),
+          body=[
+            Assign(
+              targets=[
+                Attribute(
+                  value=Name(id='self', ctx=Load()),
+                  attr='_socket',
+                  ctx=Store())],
+              value=Call(
+                func=Attribute(
+                  value=Name(id='socket', ctx=Load()),
+                  attr='socket',
+                  ctx=Load()),
+                args=[],
+                keywords=[])),
+            Expr(
+              value=Call(
+                func=Attribute(
+                  value=Attribute(
+                    value=Name(id='self', ctx=Load()),
+                    attr='_socket',
+                    ctx=Load()),
+                  attr='setsockopt',
+                  ctx=Load()),
+                args=[
+                  Attribute(
+                    value=Name(id='socket', ctx=Load()),
+                    attr='SOL_SOCKET',
+                    ctx=Load()),
+                  Attribute(
+                    value=Name(id='socket', ctx=Load()),
+                    attr='SO_REUSEADDR',
+                    ctx=Load()),
+                  Constant(value=1)],
+                keywords=[])),
+            Expr(
+              value=Call(
+                func=Attribute(
+                  value=Attribute(
+                    value=Name(id='self', ctx=Load()),
+                    attr='_socket',
+                    ctx=Load()),
+                  attr='bind',
+                  ctx=Load()),
+                args=[
+                  Tuple(
+                    elts=[
+                      Name(id='ip', ctx=Load()),
+                      Name(id='port', ctx=Load())],
+                    ctx=Load())],
+                keywords=[])),
+            Expr(
+              value=Call(
+                func=Attribute(
+                  value=Attribute(
+                    value=Name(id='self', ctx=Load()),
+                    attr='_socket',
+                    ctx=Load()),
+                  attr='listen',
+                  ctx=Load()),
+                args=[],
+                keywords=[])),
+            AnnAssign(
+              target=Attribute(
+                value=Name(id='self', ctx=Load()),
+                attr='_endpoints',
+                ctx=Store()),
+              annotation=Subscript(
+                value=Name(id='dict', ctx=Load()),
+                slice=Tuple(
+                  elts=[
+                    Name(id='str', ctx=Load()),
+                    Name(id='Callable', ctx=Load())],
+                  ctx=Load()),
+                ctx=Load()),
+              value=Call(
+                func=Name(id='dict', ctx=Load()),
+                args=[],
+                keywords=[]),
+              simple=0)],
+          decorator_list=[],
+          returns=Constant(value=None)),
+        FunctionDef(
+          name='run',
+          args=arguments(
+            posonlyargs=[],
+            args=[
+              arg(arg='self')],
+            kwonlyargs=[],
+            kw_defaults=[],
+            defaults=[]),
+          body=[
+            While(
+              test=Constant(value=True),
+              body=[
+                Assign(
+                  targets=[
+                    Tuple(
+                      elts=[
+                        Name(id='client', ctx=Store()),
+                        Name(id='addr', ctx=Store())],
+                      ctx=Store())],
+                  value=Call(
+                    func=Attribute(
+                      value=Attribute(
+                        value=Name(id='self', ctx=Load()),
+                        attr='_socket',
+                        ctx=Load()),
+                      attr='accept',
+                      ctx=Load()),
+                    args=[],
+                    keywords=[])),
+                Expr(
+                  value=Call(
+                    func=Name(id='print', ctx=Load()),
+                    args=[
+                      Constant(value='Client connected from:'),
+                      Name(id='addr', ctx=Load())],
+                    keywords=[])),
+                Expr(
+                  value=Call(
+                    func=Attribute(
+                      value=Name(id='self', ctx=Load()),
+                      attr='_handle_client',
+                      ctx=Load()),
+                    args=[
+                      Name(id='client', ctx=Load())],
+                    keywords=[]))],
+              orelse=[])],
+          decorator_list=[]),
+        FunctionDef(
+          name='_extract_request',
+          args=arguments(
+            posonlyargs=[],
+            args=[
+              arg(arg='self'),
+              arg(
+                arg='client',
+                annotation=Attribute(
+                  value=Name(id='socket', ctx=Load()),
+                  attr='socket',
+                  ctx=Load()))],
+            kwonlyargs=[],
+            kw_defaults=[],
+            defaults=[]),
+          body=[
+            Assign(
+              targets=[
+                Name(id='request_data', ctx=Store())],
+              value=Constant(value=b'')),
+            While(
+              test=Constant(value=True),
+              body=[
+                Assign(
+                  targets=[
+                    Name(id='chunk', ctx=Store())],
+                  value=Call(
+                    func=Attribute(
+                      value=Name(id='client', ctx=Load()),
+                      attr='recv',
+                      ctx=Load()),
+                    args=[
+                      Constant(value=4096)],
+                    keywords=[])),
+                If(
+                  test=UnaryOp(
+                    op=Not(),
+                    operand=Name(id='chunk', ctx=Load())),
+                  body=[
+                    Break()],
+                  orelse=[]),
+                AugAssign(
+                  target=Name(id='request_data', ctx=Store()),
+                  op=Add(),
+                  value=Name(id='chunk', ctx=Load())),
+                If(
+                  test=Compare(
+                    left=Constant(value=b'\r\n\r\n'),
+                    ops=[
+                      In()],
+                    comparators=[
+                      Name(id='request_data', ctx=Load())]),
+                  body=[
+                    Break()],
+                  orelse=[])],
+              orelse=[]),
+            Return(
+              value=Call(
+                func=Attribute(
+                  value=Name(id='request_data', ctx=Load()),
+                  attr='decode',
+                  ctx=Load()),
+                args=[],
+                keywords=[]))],
+          decorator_list=[],
+          returns=Name(id='str', ctx=Load())),
+        FunctionDef(
+          name='_handle_client',
+          args=arguments(
+            posonlyargs=[],
+            args=[
+              arg(arg='self'),
+              arg(
+                arg='client',
+                annotation=Attribute(
+                  value=Name(id='socket', ctx=Load()),
+                  attr='socket',
+                  ctx=Load()))],
+            kwonlyargs=[],
+            kw_defaults=[],
+            defaults=[]),
+          body=[
+            Assign(
+              targets=[
+                Name(id='request', ctx=Store())],
+              value=Call(
+                func=Attribute(
+                  value=Name(id='self', ctx=Load()),
+                  attr='_extract_request',
+                  ctx=Load()),
+                args=[
+                  Name(id='client', ctx=Load())],
+                keywords=[])),
+            Assign(
+              targets=[
+                Name(id='endpoint', ctx=Store())],
+              value=Subscript(
+                value=Call(
+                  func=Attribute(
+                    value=Name(id='request', ctx=Load()),
+                    attr='split',
+                    ctx=Load()),
+                  args=[],
+                  keywords=[]),
+                slice=Constant(value=1),
+                ctx=Load())),
+            Assign(
+              targets=[
+                Name(id='res', ctx=Store())],
+              value=Call(
+                func=Subscript(
+                  value=Attribute(
+                    value=Name(id='self', ctx=Load()),
+                    attr='_endpoints',
+                    ctx=Load()),
+                  slice=Name(id='endpoint', ctx=Load()),
+                  ctx=Load()),
+                args=[],
+                keywords=[])),
+            Expr(
+              value=Call(
+                func=Attribute(
+                  value=Name(id='client', ctx=Load()),
+                  attr='send',
+                  ctx=Load()),
+                args=[
+                  Call(
+                    func=Attribute(
+                      value=Name(id='res', ctx=Load()),
+                      attr='encode',
+                      ctx=Load()),
+                    args=[],
+                    keywords=[])],
+                keywords=[])),
+            Expr(
+              value=Call(
+                func=Attribute(
+                  value=Name(id='client', ctx=Load()),
+                  attr='close',
+                  ctx=Load()),
+                args=[],
+                keywords=[]))],
+          decorator_list=[]),
+        FunctionDef(
+          name='route',
+          args=arguments(
+            posonlyargs=[],
+            args=[
+              arg(arg='self'),
+              arg(
+                arg='ep',
+                annotation=Name(id='str', ctx=Load()))],
+            kwonlyargs=[],
+            kw_defaults=[],
+            defaults=[]),
+          body=[
+            FunctionDef(
+              name='inner',
+              args=arguments(
+                posonlyargs=[],
+                args=[
+                  arg(
+                    arg='method',
+                    annotation=Name(id='Callable', ctx=Load()))],
+                kwonlyargs=[],
+                kw_defaults=[],
+                defaults=[]),
+              body=[
+                If(
+                  test=Compare(
+                    left=Name(id='ep', ctx=Load()),
+                    ops=[
+                      In()],
+                    comparators=[
+                      Attribute(
+                        value=Name(id='self', ctx=Load()),
+                        attr='_endpoints',
+                        ctx=Load())]),
+                  body=[
+                    Raise(
+                      exc=Name(id='ValueError', ctx=Load()))],
+                  orelse=[]),
+                Assign(
+                  targets=[
+                    Subscript(
+                      value=Attribute(
+                        value=Name(id='self', ctx=Load()),
+                        attr='_endpoints',
+                        ctx=Load()),
+                      slice=Name(id='ep', ctx=Load()),
+                      ctx=Store())],
+                  value=Name(id='method', ctx=Load())),
+                Return(
+                  value=Name(id='method', ctx=Load()))],
+              decorator_list=[]),
+            Return(
+              value=Name(id='inner', ctx=Load()))],
+          decorator_list=[])],
+      decorator_list=[]),
+    Assign(
+      targets=[
+        Name(id='server', ctx=Store())],
+      value=Call(
+        func=Name(id='Server', ctx=Load()),
+        args=[
+          Constant(value='0.0.0.0'),
+          Constant(value=1337)],
+        keywords=[])),
+    FunctionDef(
+      name='root',
+      args=arguments(
+        posonlyargs=[],
+        args=[],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[]),
+      body=[
+        Return(
+          value=Constant(value='Hello, World'))],
+      decorator_list=[
+        Call(
+          func=Attribute(
+            value=Name(id='server', ctx=Load()),
+            attr='route',
+            ctx=Load()),
+          args=[
+            Constant(value='/')],
+          keywords=[])]),
+    Expr(
+      value=Call(
+        func=Attribute(
+          value=Name(id='server', ctx=Load()),
+          attr='run',
+          ctx=Load()),
+        args=[],
+        keywords=[]))],
+  type_ignores=[])

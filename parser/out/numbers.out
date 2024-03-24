@@ -1,0 +1,267 @@
+Module(
+  body=[
+    Import(
+      names=[
+        alias(name='os')]),
+    Import(
+      names=[
+        alias(name='sys', asname='s')]),
+    ImportFrom(
+      module='PIL',
+      names=[
+        alias(name='Image')],
+      level=0),
+    Assign(
+      targets=[
+        Name(id='src_folder', ctx=Store())],
+      value=Constant(value='./images/')),
+    Assign(
+      targets=[
+        Name(id='out', ctx=Store())],
+      value=Constant(value='./out/')),
+    Expr(
+      value=Constant(value='\nmultiline \n\ndoc \n\n\nstring\n')),
+    FunctionDef(
+      name='cleanup',
+      args=arguments(
+        posonlyargs=[],
+        args=[
+          arg(arg='filename')],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[]),
+      body=[
+        Expr(
+          value=Call(
+            func=Attribute(
+              value=Name(id='os', ctx=Load()),
+              attr='remove',
+              ctx=Load()),
+            args=[
+              Name(id='filename', ctx=Load())],
+            keywords=[]))],
+      decorator_list=[]),
+    FunctionDef(
+      name='setup',
+      args=arguments(
+        posonlyargs=[],
+        args=[],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[]),
+      body=[
+        Expr(
+          value=Call(
+            func=Attribute(
+              value=Name(id='os', ctx=Load()),
+              attr='mkdir',
+              ctx=Load()),
+            args=[
+              Name(id='src_folder', ctx=Load())],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Attribute(
+              value=Name(id='os', ctx=Load()),
+              attr='mkdir',
+              ctx=Load()),
+            args=[
+              Name(id='out', ctx=Load())],
+            keywords=[]))],
+      decorator_list=[]),
+    FunctionDef(
+      name='convert',
+      args=arguments(
+        posonlyargs=[],
+        args=[
+          arg(
+            arg='file',
+            annotation=Name(id='str', ctx=Load()))],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[]),
+      body=[
+        Assign(
+          targets=[
+            Name(id='filename', ctx=Store())],
+          value=Subscript(
+            value=Call(
+              func=Attribute(
+                value=Name(id='file', ctx=Load()),
+                attr='split',
+                ctx=Load()),
+              args=[
+                Constant(value='.')],
+              keywords=[]),
+            slice=Constant(value=0),
+            ctx=Load())),
+        Assign(
+          targets=[
+            Name(id='png_image', ctx=Store())],
+          value=Call(
+            func=Attribute(
+              value=Name(id='Image', ctx=Load()),
+              attr='open',
+              ctx=Load()),
+            args=[
+              Name(id='file', ctx=Load())],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Attribute(
+              value=Name(id='png_image', ctx=Load()),
+              attr='save',
+              ctx=Load()),
+            args=[
+              BinOp(
+                left=BinOp(
+                  left=Name(id='out', ctx=Load()),
+                  op=Add(),
+                  right=Name(id='filename', ctx=Load())),
+                op=Add(),
+                right=Constant(value='.gif'))],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Name(id='cleanup', ctx=Load()),
+            args=[
+              BinOp(
+                left=Name(id='src_folder', ctx=Load()),
+                op=Add(),
+                right=Name(id='file', ctx=Load()))],
+            keywords=[]))],
+      decorator_list=[]),
+    FunctionDef(
+      name='convert_all',
+      args=arguments(
+        posonlyargs=[],
+        args=[],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[]),
+      body=[
+        Assign(
+          targets=[
+            Name(id='files', ctx=Store())],
+          value=Call(
+            func=Attribute(
+              value=Name(id='os', ctx=Load()),
+              attr='listdir',
+              ctx=Load()),
+            args=[
+              Name(id='src_folder', ctx=Load())],
+            keywords=[])),
+        For(
+          target=Name(id='file', ctx=Store()),
+          iter=Name(id='files', ctx=Load()),
+          body=[
+            Expr(
+              value=Call(
+                func=Name(id='convert', ctx=Load()),
+                args=[
+                  BinOp(
+                    left=Name(id='src_folder', ctx=Load()),
+                    op=Add(),
+                    right=Name(id='file', ctx=Load()))],
+                keywords=[]))],
+          orelse=[])],
+      decorator_list=[]),
+    If(
+      test=Compare(
+        left=Name(id='__name__', ctx=Load()),
+        ops=[
+          Eq()],
+        comparators=[
+          Constant(value='__main__')]),
+      body=[
+        If(
+          test=Compare(
+            left=Call(
+              func=Name(id='len', ctx=Load()),
+              args=[
+                Attribute(
+                  value=Name(id='sys', ctx=Load()),
+                  attr='argv',
+                  ctx=Load())],
+              keywords=[]),
+            ops=[
+              Gt()],
+            comparators=[
+              Constant(value=1)]),
+          body=[
+            If(
+              test=Compare(
+                left=Subscript(
+                  value=Attribute(
+                    value=Name(id='sys', ctx=Load()),
+                    attr='argv',
+                    ctx=Load()),
+                  slice=Constant(value=1),
+                  ctx=Load()),
+                ops=[
+                  Eq()],
+                comparators=[
+                  Constant(value='setup')]),
+              body=[
+                Expr(
+                  value=Call(
+                    func=Name(id='setup', ctx=Load()),
+                    args=[],
+                    keywords=[]))],
+              orelse=[
+                If(
+                  test=Call(
+                    func=Attribute(
+                      value=Subscript(
+                        value=Attribute(
+                          value=Name(id='sys', ctx=Load()),
+                          attr='argv',
+                          ctx=Load()),
+                        slice=Constant(value=1),
+                        ctx=Load()),
+                      attr='endswith',
+                      ctx=Load()),
+                    args=[
+                      Constant(value='.png')],
+                    keywords=[]),
+                  body=[
+                    Expr(
+                      value=Call(
+                        func=Name(id='convert', ctx=Load()),
+                        args=[
+                          Subscript(
+                            value=Attribute(
+                              value=Name(id='sys', ctx=Load()),
+                              attr='argv',
+                              ctx=Load()),
+                            slice=Constant(value=1),
+                            ctx=Load())],
+                        keywords=[]))],
+                  orelse=[
+                    Expr(
+                      value=Call(
+                        func=Name(id='print', ctx=Load()),
+                        args=[
+                          Constant(value='bad argument:'),
+                          Subscript(
+                            value=Attribute(
+                              value=Name(id='sys', ctx=Load()),
+                              attr='argv',
+                              ctx=Load()),
+                            slice=Constant(value=1),
+                            ctx=Load())],
+                        keywords=[])),
+                    Expr(
+                      value=Call(
+                        func=Name(id='exit', ctx=Load()),
+                        args=[
+                          Constant(value=1)],
+                        keywords=[]))])])],
+          orelse=[
+            Expr(
+              value=Call(
+                func=Name(id='convert_all', ctx=Load()),
+                args=[],
+                keywords=[]))])],
+      orelse=[])],
+  type_ignores=[])

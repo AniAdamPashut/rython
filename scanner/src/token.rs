@@ -209,11 +209,11 @@ impl Iterator for Tokens {
                 }
             }
 
-            if pat.1.as_str().contains("([{") {
+            if "([{".contains(pat.1.as_str()) {
                 self.is_in_bracket = true;
             }
 
-            if pat.1.as_str().contains("}])") {
+            if "}])".contains(pat.1.as_str()) {
                 self.is_in_bracket = false;
             }
             

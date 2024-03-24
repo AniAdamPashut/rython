@@ -1,0 +1,26 @@
+Module(
+  body=[
+    Assign(
+      targets=[
+        Name(id='x', ctx=Store())],
+      value=Constant(value=b'1was#')),
+    Assign(
+      targets=[
+        Name(id='y', ctx=Store())],
+      value=Constant(value='This is a raw string')),
+    Assign(
+      targets=[
+        Name(id='z', ctx=Store())],
+      value=JoinedStr(
+        values=[
+          Constant(value='This is a format string '),
+          FormattedValue(
+            value=Name(id='x', ctx=Load()),
+            conversion=-1)])),
+    Assign(
+      targets=[
+        Name(id='w', ctx=Store())],
+      value=Constant(value=b'This is a long byte string fr')),
+    Expr(
+      value=Constant(value='This is a unicode string (fancy way to craft a normal string)'))],
+  type_ignores=[])

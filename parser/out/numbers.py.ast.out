@@ -1,0 +1,33 @@
+Module(
+  body=[
+    Assign(
+      targets=[
+        Name(id='x', ctx=Store())],
+      value=Constant(value=111)),
+    Assign(
+      targets=[
+        Name(id='hexa', ctx=Store())],
+      value=Constant(value=5103)),
+    Assign(
+      targets=[
+        Name(id='an_octal_number', ctx=Store())],
+      value=Constant(value=255)),
+    Assign(
+      targets=[
+        Name(id='super_random_binary_number', ctx=Store())],
+      value=Constant(value=9)),
+    Assign(
+      targets=[
+        Name(id='imaj', ctx=Store())],
+      value=Constant(value=10j)),
+    Assign(
+      targets=[
+        Name(id='floating_point_number', ctx=Store())],
+      value=Constant(value=1230.0)),
+    Expr(
+      value=Call(
+        func=Name(id='print', ctx=Load()),
+        args=[
+          Name(id='floating_point_number', ctx=Load())],
+        keywords=[]))],
+  type_ignores=[])

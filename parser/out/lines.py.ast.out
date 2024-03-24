@@ -1,0 +1,45 @@
+Module(
+  body=[
+    Import(
+      names=[
+        alias(name='re')]),
+    FunctionDef(
+      name='parse',
+      args=arguments(
+        posonlyargs=[],
+        args=[
+          arg(arg='string')],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[]),
+      body=[
+        Assign(
+          targets=[
+            Name(id='stack', ctx=Store())],
+          value=List(elts=[], ctx=Load())),
+        Assign(
+          targets=[
+            Name(id='digit', ctx=Store())],
+          value=Constant(value='[0-9]+')),
+        Assign(
+          targets=[
+            Name(id='op', ctx=Store())],
+          value=Constant(value='\\+|-|\\*|\\/')),
+        Assign(
+          targets=[
+            Name(id='patterns', ctx=Store())],
+          value=List(
+            elts=[
+              Name(id='digit', ctx=Load()),
+              Name(id='op', ctx=Load())],
+            ctx=Load())),
+        While(
+          test=Constant(value=True),
+          body=[
+            Assign(
+              targets=[
+                Name(id='i', ctx=Store())],
+              value=Constant(value=0))],
+          orelse=[])],
+      decorator_list=[])],
+  type_ignores=[])

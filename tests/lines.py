@@ -7,5 +7,4 @@ def parse(string):
     patterns = [digit, op]
     while True:
         i = 0
-        map(lambda pat: re.match(pat, string[i:]), patterns)
-        
+      

@@ -1,4 +1,4 @@
-use scanner::{Token, Tokens, TokenType};
+use scanner::prelude::*;
 
 struct AstNode {
     data: Token,

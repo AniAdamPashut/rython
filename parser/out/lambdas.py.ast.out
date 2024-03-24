@@ -1,0 +1,86 @@
+Module(
+  body=[
+    Assign(
+      targets=[
+        Name(id='adder', ctx=Store())],
+      value=Lambda(
+        args=arguments(
+          posonlyargs=[],
+          args=[
+            arg(arg='y')],
+          kwonlyargs=[],
+          kw_defaults=[],
+          defaults=[]),
+        body=Lambda(
+          args=arguments(
+            posonlyargs=[],
+            args=[
+              arg(arg='z')],
+            kwonlyargs=[],
+            kw_defaults=[],
+            defaults=[]),
+          body=BinOp(
+            left=Name(id='y', ctx=Load()),
+            op=Add(),
+            right=Name(id='z', ctx=Load()))))),
+    Assign(
+      targets=[
+        Name(id='add3', ctx=Store())],
+      value=Call(
+        func=Name(id='adder', ctx=Load()),
+        args=[
+          Constant(value=3)],
+        keywords=[])),
+    Expr(
+      value=Call(
+        func=Name(id='print', ctx=Load()),
+        args=[
+          Call(
+            func=Name(id='add3', ctx=Load()),
+            args=[
+              Constant(value=2)],
+            keywords=[])],
+        keywords=[])),
+    Assign(
+      targets=[
+        Name(id='x', ctx=Store())],
+      value=ListComp(
+        elt=BinOp(
+          left=Name(id='x', ctx=Load()),
+          op=Mult(),
+          right=Constant(value=2)),
+        generators=[
+          comprehension(
+            target=Name(id='x', ctx=Store()),
+            iter=Call(
+              func=Name(id='range', ctx=Load()),
+              args=[
+                Constant(value=10)],
+              keywords=[]),
+            ifs=[],
+            is_async=0)])),
+    Assign(
+      targets=[
+        Name(id='x', ctx=Store())],
+      value=Call(
+        func=Name(id='list', ctx=Load()),
+        args=[
+          Call(
+            func=Name(id='map', ctx=Load()),
+            args=[
+              Lambda(
+                args=arguments(
+                  posonlyargs=[],
+                  args=[
+                    arg(arg='x')],
+                  kwonlyargs=[],
+                  kw_defaults=[],
+                  defaults=[]),
+                body=BinOp(
+                  left=Name(id='x', ctx=Load()),
+                  op=Div(),
+                  right=Constant(value=2))),
+              Name(id='x', ctx=Load())],
+            keywords=[])],
+        keywords=[]))],
+  type_ignores=[])

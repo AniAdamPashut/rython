@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import os
-import sys
+import sys as s
 from PIL import Image
 
 
